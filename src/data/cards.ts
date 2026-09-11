@@ -34,6 +34,7 @@ export const cardTypes: Record<string, CardType> = {
   Steal: 'tool',
   Bridge: 'tool',
   "Skip Drawing Phase": 'tool',
+  "Skip Action Phase": 'tool',
 
   // Equipment.
   'Judgement Shield': 'equipment',

@@ -15,7 +15,7 @@ export const shu: Character[] = [
       {
         name: '[Ability]',
         description:
-          'During your play phase, you can give any number of hand cards to any other players. If you give 2 or more hand cards, you recover 1 health',
+          'During your action phase, you can give any number of hand cards to any other players. If you give 2 or more hand cards, you recover 1 health',
         tags: ['heal'],
       },
       {
@@ -53,7 +53,7 @@ export const shu: Character[] = [
       {
         name: '[Ability]',
         description:
-          'During your play phase, you can use an unlimited number of [Attack]',
+          'During your action phase, you can use an unlimited number of [Attack]',
       }
     ]
   },
@@ -171,7 +171,7 @@ export const shu: Character[] = [
       {
         name: '[Enforced Ability]',
         description:
-          'During your play phase, you can treat any clubs-suited hand card as [Chains]',
+          'During your action phase, you can treat any clubs-suited hand card as [Chains]',
       },
       {
         name: '[One-Time Use Ability]',
@@ -197,7 +197,7 @@ export const shu: Character[] = [
       {
         name: '[Ability]',
         description:
-          'During your play phase, you can use any red-suited hand card as [Blaze]',
+          'During your action phase, you can use any red-suited hand card as [Blaze]',
       },
       {
         name: '[Ability]',
@@ -259,7 +259,7 @@ export const shu: Character[] = [
       {
         name: '[Ability]',
         description:
-          'Once per turn, during your play phase, you can select another player who has the attack range to hit you to play an [Attack] on you.' +
+          'Once per turn, during your action phase, you can select another player who has the attack range to hit you to play an [Attack] on you.' +
           'If they fail to do so, then you can discard a card from the player',
       },
       {
@@ -291,7 +291,7 @@ export const shu: Character[] = [
       {
         name: '[Ability]',
         description:
-          'You can skip your play phase. If you do so, then at the end of your turn (after discard phase), you can discard a hand card to let another player take an extra turn immediately after.\n' +
+          'You can skip your action phase. If you do so, then at the end of your turn (after discard phase), you can discard a hand card to let another player take an extra turn immediately after.\n' +
           'Play resumes normally after with the person to your right.',
       },
       {
@@ -335,7 +335,7 @@ export const shu: Character[] = [
       {
         name: '[Ability]',
         description:
-          'During your play phase, if the number of hand cards exceed your max health, you can look at the top 3 cards of the deck.\n' +
+          'During your action phase, if the number of hand cards exceed your max health, you can look at the top 3 cards of the deck.\n' +
           'You can choose to reveal any heart-suited cards before placing them in your hand.\n' +
           'You can also re-arrange the cards, but they must be placed back to the top of the deck.',
       },
