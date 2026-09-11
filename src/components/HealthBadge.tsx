@@ -1,3 +1,5 @@
+import { assetUrl } from '../lib/images'
+
 /**
  * Health, drawn the way the physical card draws it: one pip per point, rather
  * than an icon with a number beside it.
@@ -12,7 +14,7 @@ function Pip() {
   return (
     <img
       className="health__pip"
-      src="/icons/health.png"
+      src={assetUrl('icons/health.png')}
       alt=""
       aria-hidden="true"
       // Repeated <img> rather than a repeating background: it's one cached

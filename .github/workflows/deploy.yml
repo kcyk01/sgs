@@ -1,0 +1,70 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you redeploy from the Actions tab without pushing.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race. `cancel-in-progress: false` so a queued deploy
+# finishes rather than being dropped — a half-applied deploy is worse than a
+# slow one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Lint
+        run: npm run lint
+
+      # `npm run build` is `tsc -b && vite build`, so this typechecks too.
+      # base_path is '/sgs' for this project site, '/' for a user site or a
+      # custom domain — reading it from the Pages config means the build stays
+      # correct if any of that changes.
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+
+      # GitHub Pages has no SPA rewrite: a deep link or refresh on /c/liu-bei
+      # asks for a file that doesn't exist. Serving index.html as the 404 page
+      # boots the app, and the router reads the original URL from the address
+      # bar as usual.
+      - name: SPA fallback
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
