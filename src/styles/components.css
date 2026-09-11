@@ -1,0 +1,812 @@
+/* ---------------------------------------------------------------------------
+   Component styles. Class names are BEM-ish (block__element--modifier).
+   --------------------------------------------------------------------------- */
+
+/* --- Search + filter bar -------------------------------------------------- */
+
+.searchbar {
+  display: flex;
+  gap: var(--sp-2);
+  padding-block: var(--sp-3);
+  position: sticky;
+  /* Sits directly under the sticky header. */
+  top: calc(var(--header-h) + var(--safe-top));
+  z-index: 9;
+  background: var(--c-bg);
+}
+
+.searchbar__field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+}
+
+.searchbar__input {
+  flex: 1;
+  min-width: 0;
+  /* 16px minimum stops iOS Safari from zooming when the field is focused. */
+  font-size: 16px;
+  height: 44px;
+  background: none;
+  border: 0;
+}
+
+.searchbar__input:focus {
+  outline: none;
+}
+
+.searchbar__input::placeholder {
+  color: var(--c-muted);
+}
+
+.searchbar__clear,
+.searchbar__filter {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  border-radius: var(--r-md);
+  color: var(--c-muted);
+}
+
+.searchbar__filter {
+  position: relative;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  padding-inline: var(--sp-3);
+  gap: var(--sp-2);
+  font-size: 0.875rem;
+  font-weight: 550;
+}
+
+.searchbar__filter--active {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+.searchbar__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding-inline: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--c-bg);
+  background: var(--c-accent);
+  border-radius: 9px;
+}
+
+/* --- Chips ---------------------------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+.chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+/* Toggleable chip used inside the filter sheet — 36px tall keeps rows tappable. */
+.chip--button {
+  min-height: 36px;
+  padding-inline: var(--sp-3);
+  font-size: 0.8125rem;
+}
+
+.chip--selected {
+  background: color-mix(in srgb, var(--c-accent) 22%, var(--c-surface-2));
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* --- Character list ------------------------------------------------------- */
+
+.list-group + .list-group {
+  margin-top: var(--sp-5);
+}
+
+.list-group__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding-block: var(--sp-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  /* Skip layout/paint work for rows scrolled out of view — cheap win on long
+     lists without pulling in a virtualiser. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.card-row:active {
+  background: var(--c-surface-2);
+  transform: scale(0.99);
+}
+
+.card-row__thumb {
+  flex: none;
+  width: 52px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  background: var(--c-surface-2);
+}
+
+.card-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-row__name {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-row__title {
+  font-size: 0.8125rem;
+  color: var(--c-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-row__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: 6px;
+}
+
+/* --- Health badge --------------------------------------------------------- */
+
+/* No pill or tint behind the pips: the card prints them bare, and a red-tinted
+   capsule behind red icons only muddies them. */
+.health {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+  flex: none;
+}
+
+/* Source art is 15x20; 12x16 keeps that 3:4 ratio on whole pixels, so the
+   scaled edges stay crisp. */
+.health__pip {
+  width: 12px;
+  height: 16px;
+  flex: none;
+}
+
+/* Only shown for the ×N fallback and the 0 case. */
+.health__count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--c-danger);
+}
+
+/* --- Filter sheet (bottom sheet) ------------------------------------------ */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  border: 0;
+  padding: 0;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  /* Must stay `none` while closed. The UA stylesheet hides a closed dialog with
+     `dialog:not([open]) { display: none }`, but any author rule outranks it — so
+     setting `display: flex` unconditionally leaves a full-screen transparent
+     element over the page that swallows every tap. */
+  display: none;
+}
+
+.sheet[open] {
+  display: flex;
+  flex-direction: column;
+  /* Panel hugs the bottom; the gap above it is the tappable backdrop. */
+  justify-content: flex-end;
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.sheet__panel {
+  background: var(--c-surface);
+  border-top-left-radius: var(--r-lg);
+  border-top-right-radius: var(--r-lg);
+  border-top: 1px solid var(--c-border);
+  padding: var(--sp-3) max(var(--sp-4), var(--safe-left))
+    calc(var(--sp-4) + var(--safe-bottom));
+  /* Never taller than the viewport; content scrolls inside. */
+  max-height: 85dvh;
+  overflow-y: auto;
+  animation: sheet-in 180ms ease-out;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(12%);
+    opacity: 0.6;
+  }
+}
+
+.sheet__grabber {
+  width: 36px;
+  height: 4px;
+  margin: 0 auto var(--sp-3);
+  background: var(--c-border);
+  border-radius: 2px;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.sheet__title {
+  font-size: 1.0625rem;
+  font-weight: 650;
+  /* Pushes "Reset all" + close to the right edge. */
+  margin-right: auto;
+}
+
+.sheet__close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  margin-right: -8px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  color: var(--c-text);
+}
+
+.sheet__close:active {
+  background: var(--c-border);
+}
+
+.sheet__section {
+  margin-bottom: var(--sp-5);
+}
+
+.sheet__label {
+  display: block;
+  margin-bottom: var(--sp-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.sheet__actions {
+  display: flex;
+  gap: var(--sp-3);
+  position: sticky;
+  bottom: 0;
+  padding-top: var(--sp-3);
+  background: var(--c-surface);
+}
+
+/* --- Buttons -------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 48px;
+  padding-inline: var(--sp-4);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
+  color: var(--c-text);
+}
+
+.btn:active {
+  transform: scale(0.985);
+}
+
+.btn--primary {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #1a1207;
+}
+
+.btn--ghost {
+  background: none;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--link {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--c-accent);
+  font-size: 0.875rem;
+}
+
+/* --- Segmented control (sort / group) ------------------------------------- */
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+}
+
+.segmented__option {
+  flex: 1;
+  min-height: 40px;
+  padding-inline: var(--sp-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 0;
+  border-radius: calc(var(--r-md) - 3px);
+  background: none;
+  color: var(--c-muted);
+  white-space: nowrap;
+}
+
+.segmented__option[aria-pressed='true'] {
+  background: var(--c-bg);
+  color: var(--c-text);
+}
+
+/* --- Character detail ----------------------------------------------------- */
+
+/* Heading block sits above the art: name, epithet, then health/kingdom as a
+   subtitle row. Costs ~90px of height and buys a much wider image. */
+.detail__head {
+  padding-top: var(--sp-4);
+}
+
+.detail__name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.detail__title {
+  color: var(--c-muted);
+  font-size: 0.9375rem;
+}
+
+.detail__stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.detail__art-btn {
+  display: block;
+  width: 100%;
+  margin-block: var(--sp-4);
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: center;
+}
+
+.detail__art-frame {
+  position: relative;
+  display: inline-block;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  line-height: 0;
+}
+
+.detail__art-btn:active:not(:disabled) .detail__art-frame {
+  transform: scale(0.99);
+}
+
+/* Disabled = art not added yet; keep it looking like plain content. */
+.detail__art-btn:disabled {
+  cursor: default;
+}
+
+/* Height, not width, is the constraint that matters: capping the art at ~44% of
+   the viewport height guarantees the abilities heading is within one short
+   scroll on any phone, while `dvh` lets the art grow on taller devices. Width
+   follows from the 5:7 aspect ratio, so the art is ~2x the old thumbnail. */
+.detail__art {
+  height: min(44dvh, 400px);
+  width: auto;
+  aspect-ratio: 5 / 7;
+  max-width: 100%;
+  object-fit: cover;
+  background: var(--c-surface-2);
+}
+
+.detail__art-hint {
+  position: absolute;
+  right: var(--sp-2);
+  bottom: var(--sp-2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--c-text);
+  background: rgb(0 0 0 / 55%);
+  backdrop-filter: blur(4px);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* --- Alternate-version pager (swipe the art) ------------------------------ */
+
+.art-pager__stage {
+  /* Clips the art as it slides past the edge during a drag, so the gesture
+     reads as paging a stack rather than nudging a picture around. */
+  overflow: hidden;
+  /* `touch-action: pan-y` is set inline, and only when there is more than one
+     version — see CardArtPager. */
+}
+
+.art-pager__switcher {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  /* Pull up under the art, whose button carries a block margin of its own. */
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+.art-pager__nav {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  color: var(--c-text);
+}
+
+.art-pager__nav:disabled {
+  opacity: 0.35;
+}
+
+.art-pager__nav:active:not(:disabled) {
+  background: var(--c-surface-2);
+}
+
+.art-pager__meta {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.art-pager__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.art-pager__count {
+  font-weight: 400;
+  color: var(--c-muted);
+}
+
+.art-pager__dots {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+/* The dot itself is 6px, but the button around it is a full tap target. */
+.art-pager__dot {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.art-pager__dot-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-border);
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.art-pager__dot--on .art-pager__dot-mark {
+  background: var(--c-accent);
+  transform: scale(1.25);
+}
+
+/* --- Full-screen card art ------------------------------------------------- */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: rgb(8 8 12 / 96%);
+  /* Same trap as .sheet — must stay hidden while closed. */
+  display: none;
+}
+
+.lightbox[open] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+}
+
+.lightbox::backdrop {
+  background: rgb(0 0 0 / 80%);
+}
+
+.lightbox__img {
+  /* Fill as much of the screen as the art's aspect ratio allows, minus room for
+     the close button and caption. `contain` so nothing is cropped away. */
+  max-width: calc(100% - 2 * var(--sp-4));
+  max-height: 78dvh;
+  object-fit: contain;
+  border-radius: var(--r-md);
+}
+
+.lightbox__close {
+  position: absolute;
+  top: calc(var(--safe-top) + var(--sp-3));
+  right: max(var(--sp-4), var(--safe-right));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  color: var(--c-text);
+}
+
+.lightbox__caption {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-muted);
+  padding-bottom: var(--safe-bottom);
+}
+
+.section {
+  margin-top: var(--sp-5);
+}
+
+.section__title {
+  margin-bottom: var(--sp-3);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.ability {
+  padding: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+}
+
+.ability + .ability {
+  margin-top: var(--sp-2);
+}
+
+.ability__name {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  margin-bottom: var(--sp-1);
+}
+
+.ability__text {
+  font-size: 0.875rem;
+  color: #d5d5e0;
+}
+
+/* Inline card reference inside rules text — see CardRef.tsx. Sized in `em` so
+   it tracks whatever text it is embedded in, with near-zero vertical padding so
+   a paragraph full of them keeps an even line rhythm. */
+.cardref {
+  display: inline;
+  padding: 0.06em 0.4em;
+  font-size: 0.9em;
+  font-weight: 650;
+  color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-accent) 32%, transparent);
+  border-radius: var(--r-sm);
+  /* Card names shouldn't break mid-word; if the browser wraps the box anyway,
+     `clone` repeats the padding and border on both fragments instead of
+     leaving one open-ended. */
+  white-space: nowrap;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Tool and equipment cards — same token shape, different hue. Only the three
+   colour channels are restated, so any future change to the token's geometry
+   applies to every card type. Basic cards keep the base --c-accent styling. */
+.cardref--tool {
+  color: var(--c-tool);
+  background: color-mix(in srgb, var(--c-tool) 14%, transparent);
+  border-color: color-mix(in srgb, var(--c-tool) 32%, transparent);
+}
+
+.cardref--equipment {
+  color: var(--c-equipment);
+  background: color-mix(in srgb, var(--c-equipment) 14%, transparent);
+  border-color: color-mix(in srgb, var(--c-equipment) 32%, transparent);
+}
+
+/* One forced line of rules text. A <span> rather than a <br>, so a wrapped list
+   item can hang-indent — see below. Valid inside the <p> that wraps it, since
+   span is phrasing content whatever its `display` is. */
+.rules__line {
+  display: block;
+}
+
+.rules__line + .rules__line {
+  margin-top: 0.35em;
+}
+
+/* Hanging indent for "1. …" / "- …" lines: the padding shifts the whole block
+   right and the negative text-indent pulls the first line back, so wrapped text
+   lines up under the words rather than under the marker. */
+.rules__line--item {
+  padding-left: 1.5em;
+  text-indent: -1.5em;
+}
+
+/* Kingdom named inside rules text. Colour comes from data/kingdoms.ts as an
+   inline style; this only carries the weight, which is what keeps the name
+   legible once it is tinted away from the body text colour. */
+.kingdomref {
+  font-weight: 650;
+}
+
+.ability__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--sp-2);
+}
+
+.flavor {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--c-muted);
+}
+
+/* --- Scan page ------------------------------------------------------------ */
+
+.scan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding-block: var(--sp-4);
+}
+
+.scan__viewport {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background: #000;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.scan__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Card-shaped alignment guide overlaid on the camera feed. */
+.scan__reticle {
+  position: absolute;
+  inset: 12% 18%;
+  border: 2px dashed color-mix(in srgb, var(--c-accent) 70%, transparent);
+  border-radius: var(--r-md);
+  pointer-events: none;
+}
+
+.scan__placeholder {
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--c-muted);
+  font-size: 0.875rem;
+}
