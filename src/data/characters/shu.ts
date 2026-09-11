@@ -21,12 +21,12 @@ export const shu: Character[] = [
       {
         name: '[King Ability]',
         description:
-          'Another Shu character may play an [Attack] on your behalf',
+          'Another character from the Shu kingdom may play an [Attack] on your behalf',
         tags: ['king'],
       },
     ],
     variants: [
-      {id: 'liu-bei-2', label: 'Alt Art'},
+      {id: 'liu-bei-2', label: 'Alternate Art'},
     ]
   },
   {
@@ -39,7 +39,7 @@ export const shu: Character[] = [
       {
         name: '[Ability]',
         description:
-          'You can use any red suited card to use as an [Attack]',
+          'You can use any red-suited card as an [Attack]',
       }
     ]
   },

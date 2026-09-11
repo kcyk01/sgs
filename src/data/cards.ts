@@ -31,6 +31,9 @@ export const cardTypes: Record<string, CardType> = {
   Blaze: 'tool',
   Elephants: 'tool',
   Arrows: 'tool',
+  Steal: 'tool',
+  Bridge: 'tool',
+  "Skip Drawing Phase": 'tool',
 
   // Equipment.
   'Judgement Shield': 'equipment',
@@ -58,8 +61,8 @@ export function cardType(name: string): CardType {
     warned.add(name)
     console.warn(
       `[cards] "${name}" is referenced in rules text but not in cardTypes ` +
-        `(src/data/cards.ts). Rendering it as a basic card. Typo, or a card ` +
-        `that still needs registering?`,
+      `(src/data/cards.ts). Rendering it as a basic card. Typo, or a card ` +
+      `that still needs registering?`,
     )
   }
   return 'basic'
