@@ -10,7 +10,7 @@ export interface Kingdom {
   name: string
   /** CSS color used for chips and accents. */
   color: string
-  /** Optional blurb shown on the About page. */
+  /** Optional blurb. Not rendered anywhere yet. */
   description?: string
 }
 

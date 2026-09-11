@@ -10,10 +10,14 @@ function parseList(value: string | null): string[] {
   return value ? value.split(',').filter(Boolean) : []
 }
 
-function parseInt_(value: string | null): number | null {
-  if (value === null || value === '') return null
-  const n = Number(value)
-  return Number.isFinite(n) ? n : null
+function parseNumberList(value: string | null): number[] {
+  return [
+    ...new Set(
+      parseList(value)
+        .map(Number)
+        .filter((n) => Number.isFinite(n)),
+    ),
+  ].sort((a, b) => a - b)
 }
 
 /**
@@ -35,8 +39,7 @@ export function useCharacterQuery(): {
       q: params.get('q') ?? '',
       kingdoms: parseList(params.get('kingdom')),
       tags: parseList(params.get('tag')),
-      minHealth: parseInt_(params.get('hpmin')),
-      maxHealth: parseInt_(params.get('hpmax')),
+      healths: parseNumberList(params.get('hp')),
       sort: sort && SORTS.includes(sort) ? sort : emptyQuery.sort,
       group: group && GROUPS.includes(group) ? group : emptyQuery.group,
     }
@@ -49,8 +52,7 @@ export function useCharacterQuery(): {
       if (next.q) sp.set('q', next.q)
       if (next.kingdoms.length) sp.set('kingdom', next.kingdoms.join(','))
       if (next.tags.length) sp.set('tag', next.tags.join(','))
-      if (next.minHealth !== null) sp.set('hpmin', String(next.minHealth))
-      if (next.maxHealth !== null) sp.set('hpmax', String(next.maxHealth))
+      if (next.healths.length) sp.set('hp', next.healths.join(','))
       if (next.sort !== emptyQuery.sort) sp.set('sort', next.sort)
       if (next.group !== emptyQuery.group) sp.set('group', next.group)
       // replace: typing in the search box should not fill up the history stack.
@@ -67,6 +69,6 @@ export function useCharacterQuery(): {
 }
 
 /** Toggle a value in one of the array-valued filters. */
-export function toggleInList(list: string[], value: string): string[] {
+export function toggleInList<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }

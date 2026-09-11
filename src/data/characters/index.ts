@@ -35,16 +35,15 @@ export const allAbilityTags: string[] = [
   ...new Set(characters.flatMap((c) => allAbilities(c).flatMap((a) => a.tags ?? []))),
 ].sort()
 
-/** Min/max health present in the data, used to bound the health filter. */
-export const healthRange: { min: number; max: number } = characters.length
-  ? characters.reduce(
-      (acc, c) => ({
-        min: Math.min(acc.min, c.health),
-        max: Math.max(acc.max, c.health),
-      }),
-      { min: Infinity, max: -Infinity },
-    )
-  : { min: 0, max: 0 }
+/**
+ * The distinct health values present in the data, ascending — the health filter
+ * offers exactly these. A min/max range would invent empty options: the roster
+ * runs 3, 4, 8 with nothing in between, and a chip for 5 that can never match
+ * anything is worse than no chip at all.
+ */
+export const healthValues: number[] = [
+  ...new Set(characters.map((c) => c.health)),
+].sort((a, b) => a - b)
 
 if (import.meta.env.DEV) {
   // Now that ids are spread across four files, a collision between kingdoms is

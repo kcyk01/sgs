@@ -91,7 +91,7 @@ export function CardArtPager({
               // Remount per version so a missing-art fallback never carries
               // over to the next version, or to the next card viewed.
               key={version.id}
-              character={version}
+              card={version}
               className="detail__art"
               onLoadError={onArtMissing}
             />

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AppHeader } from '../components/AppHeader'
+import { CardTypeTabs } from '../components/CardTypeTabs'
 import { CharacterRow } from '../components/CharacterRow'
 import { FilterSheet } from '../components/FilterSheet'
 import { SearchBar } from '../components/SearchBar'
@@ -30,6 +31,7 @@ export default function CharacterListPage() {
     <>
       <AppHeader title="Characters" />
       <main className="app__main">
+        <CardTypeTabs />
         <SearchBar
           value={query.q}
           onChange={(q) => setQuery({ q })}

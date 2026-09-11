@@ -421,9 +421,104 @@
   white-space: nowrap;
 }
 
-.segmented__option[aria-pressed='true'] {
+.segmented__option[aria-pressed='true'],
+.segmented__option[aria-current='page'] {
   background: var(--c-bg);
   color: var(--c-text);
+}
+
+/* Link flavour of the control — the card-type switcher at the top of the browse
+   tab. Anchors need the centering the <button> got for free. */
+.segmented--tabs {
+  margin-top: var(--sp-3);
+}
+
+.segmented--tabs .segmented__option {
+  display: grid;
+  place-items: center;
+}
+
+/* --- Weapon list ---------------------------------------------------------- */
+
+/* A card rather than a tappable row: a weapon is fully readable in place, so
+   there is nothing to navigate to. Only the art is interactive. */
+.weapon {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 110px;
+}
+
+.weapon__art {
+  position: relative;
+  flex: none;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: var(--r-sm);
+}
+
+.weapon__art:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Larger than the character list's 52px thumb: this one is being compared
+   against a card held in someone's hand, so the art has to be readable without
+   opening it. Same 5:7 crop. */
+.weapon__thumb {
+  display: block;
+  width: 64px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  background: var(--c-surface-2);
+}
+
+/* Corner affordance, mirroring the detail page's "tap to enlarge" — without the
+   label, which would not fit at this size. */
+.weapon__zoom {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--c-bg) 70%, transparent);
+  color: var(--c-text);
+}
+
+.weapon__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.weapon__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.weapon__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* The range is the field you scan for, so it keeps its own column on the right
+   rather than sitting in the prose. */
+.weapon__range {
+  flex: none;
+  color: var(--c-muted);
 }
 
 /* --- Character detail ----------------------------------------------------- */

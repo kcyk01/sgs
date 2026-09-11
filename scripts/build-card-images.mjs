@@ -37,9 +37,10 @@ const quality = Number(flag('quality', 85))
 const force = args.includes('--force')
 
 /**
- * Filenames become URLs and must match a `Character.id` (or a
- * `CharacterVariant.id`) exactly, so normalise to the kebab-case the rest of
- * the codebase uses rather than trusting whatever the scanner named the file.
+ * Filenames become URLs and must match a card id exactly — `Character.id`,
+ * `CharacterVariant.id` or `Weapon.id` — so normalise to the kebab-case the
+ * rest of the codebase uses rather than trusting whatever the scanner named the
+ * file.
  */
 function slugify(name) {
   return name
@@ -83,7 +84,7 @@ const sources = await readdir(inDir).catch(() => null)
 if (!sources) {
   console.error(
     `No source directory at ${path.relative(process.cwd(), inDir)}\n` +
-      `Create it and drop card scans in, named after each character id.`,
+      `Create it and drop card scans in, named after each card id.`,
   )
   process.exit(1)
 }

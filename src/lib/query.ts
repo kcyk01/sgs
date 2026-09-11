@@ -10,8 +10,8 @@ export interface CharacterQuery {
   q: string
   kingdoms: string[]
   tags: string[]
-  minHealth: number | null
-  maxHealth: number | null
+  /** Selected health values. Empty means "any"; otherwise OR semantics. */
+  healths: number[]
   sort: SortKey
   group: GroupKey
 }
@@ -20,8 +20,7 @@ export const emptyQuery: CharacterQuery = {
   q: '',
   kingdoms: [],
   tags: [],
-  minHealth: null,
-  maxHealth: null,
+  healths: [],
   sort: 'name',
   group: 'none',
 }
@@ -65,11 +64,10 @@ export function filterCharacters(
   source: Character[],
   query: CharacterQuery,
 ): Character[] {
-  const { q, kingdoms, tags, minHealth, maxHealth } = query
+  const { q, kingdoms, tags, healths } = query
   return source.filter((c) => {
     if (kingdoms.length && !kingdoms.includes(c.kingdom)) return false
-    if (minHealth !== null && c.health < minHealth) return false
-    if (maxHealth !== null && c.health > maxHealth) return false
+    if (healths.length && !healths.includes(c.health)) return false
     if (tags.length) {
       const own = new Set(allAbilities(c).flatMap((a) => a.tags ?? []))
       // OR semantics: match any selected tag.
@@ -133,7 +131,6 @@ export function activeFilterCount(query: CharacterQuery): number {
   return (
     query.kingdoms.length +
     query.tags.length +
-    (query.minHealth !== null ? 1 : 0) +
-    (query.maxHealth !== null ? 1 : 0)
+    query.healths.length
   )
 }

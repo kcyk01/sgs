@@ -11,6 +11,8 @@
  * as a basic card, and warns in the dev console — which is what turns a typo
  * like `[Attak]` into something you notice.
  */
+import {weapons} from './weapons'
+
 export type CardType = 'basic' | 'tool' | 'equipment'
 
 /**
@@ -24,6 +26,8 @@ export const cardTypes: Record<string, CardType> = {
   Dodge: 'basic',
   Peach: 'basic',
   Wine: 'basic',
+  "Fire Attack": 'basic',
+  "Lightning Attack": 'basic',
 
   // Tool cards.
   Chains: 'tool',
@@ -42,6 +46,16 @@ export const cardTypes: Record<string, CardType> = {
   'Judgement Shield': 'equipment',
 }
 
+/**
+ * The registry actually consulted at render time: weapons folded in as
+ * equipment, so `[Axe]` colours correctly from the weapon entry alone. Manual
+ * entries above win a collision — they're the explicit statement.
+ */
+const registry: Record<string, CardType> = {
+  ...Object.fromEntries(weapons.map((w) => [w.name, 'equipment' as CardType])),
+  ...cardTypes,
+}
+
 /** Names already warned about, so a repeated typo logs once rather than per render. */
 const warned = new Set<string>()
 
@@ -53,11 +67,11 @@ const warned = new Set<string>()
  * treated as a basic card and reported once in development.
  */
 export function cardType(name: string): CardType {
-  const exact = cardTypes[name]
+  const exact = registry[name]
   if (exact) return exact
 
   // Trailing plural: "[Attacks]" -> "Attack".
-  const singular = name.endsWith('s') ? cardTypes[name.slice(0, -1)] : undefined
+  const singular = name.endsWith('s') ? registry[name.slice(0, -1)] : undefined
   if (singular) return singular
 
   if (import.meta.env.DEV && !warned.has(name)) {

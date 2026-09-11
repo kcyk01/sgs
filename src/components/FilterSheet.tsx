@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Icon } from './Icon'
-import { allAbilityTags, healthRange } from '../data/characters'
+import { allAbilityTags, healthValues } from '../data/characters'
 import { kingdoms } from '../data/kingdoms'
 import { toggleInList } from '../hooks/useCharacterQuery'
 import type { CharacterQuery, GroupKey, SortKey } from '../lib/query'
@@ -17,11 +17,6 @@ const groupOptions: { key: GroupKey; label: string }[] = [
   { key: 'kingdom', label: 'Kingdom' },
   { key: 'health', label: 'Health' },
 ]
-
-const healthValues = Array.from(
-  { length: Math.max(0, healthRange.max - healthRange.min + 1) },
-  (_, i) => healthRange.min + i,
-)
 
 /**
  * Bottom sheet, not a full page or a side drawer: it keeps the result count in
@@ -109,9 +104,7 @@ export function FilterSheet({
           <span className="sheet__label">Health</span>
           <div className="chip-row">
             {healthValues.map((hp) => {
-              // Single-value health selection keeps the control simple; swap for
-              // a range slider if the health spread grows.
-              const selected = query.minHealth === hp && query.maxHealth === hp
+              const selected = query.healths.includes(hp)
               return (
                 <button
                   key={hp}
@@ -119,11 +112,7 @@ export function FilterSheet({
                   aria-pressed={selected}
                   className={`chip chip--button${selected ? ' chip--selected' : ''}`}
                   onClick={() =>
-                    setQuery(
-                      selected
-                        ? { minHealth: null, maxHealth: null }
-                        : { minHealth: hp, maxHealth: hp },
-                    )
+                    setQuery({ healths: toggleInList(query.healths, hp) })
                   }
                 >
                   {hp}

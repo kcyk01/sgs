@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { Character } from '../types/character'
+import type { NamedCardArtSource } from '../lib/images'
 import { cardImageUrl } from '../lib/images'
 import { Icon } from './Icon'
 
@@ -12,12 +12,12 @@ import { Icon } from './Icon'
  * an invisible full-screen tap-blocker behind.
  */
 export function CardLightbox({
-  character,
+  card,
   open,
   onClose,
   caption,
 }: {
-  character: Character
+  card: NamedCardArtSource
   open: boolean
   onClose: () => void
   /** Overrides the default name caption, e.g. to name the alternate version. */
@@ -36,7 +36,7 @@ export function CardLightbox({
     <dialog
       ref={ref}
       className="lightbox"
-      aria-label={`${character.name} card art`}
+      aria-label={`${card.name} card art`}
       onClose={onClose}
       // Tap anywhere outside the image closes — the whole backdrop is the target.
       onClick={onClose}
@@ -51,13 +51,13 @@ export function CardLightbox({
       </button>
       <img
         className="lightbox__img"
-        src={cardImageUrl(character)}
-        alt={`${character.name} card`}
+        src={cardImageUrl(card)}
+        alt={`${card.name} card`}
         // Stop the tap-to-close from firing when the image itself is tapped, so
         // pinch-zooming the art does not dismiss the viewer.
         onClick={(e) => e.stopPropagation()}
       />
-      <p className="lightbox__caption">{caption ?? character.name}</p>
+      <p className="lightbox__caption">{caption ?? card.name}</p>
     </dialog>
   )
 }

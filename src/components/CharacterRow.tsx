@@ -8,7 +8,7 @@ import { KingdomChip } from './KingdomChip'
 export function CharacterRow({ character }: { character: Character }) {
   return (
     <Link to={`/c/${character.id}`} className="card-row">
-      <CardThumb character={character} className="card-row__thumb" />
+      <CardThumb card={character} className="card-row__thumb" />
       <div className="card-row__body">
         <div className="card-row__name">{character.name}</div>
         {character.title && (

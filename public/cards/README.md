@@ -20,26 +20,28 @@ never part of a build. See `scripts/build-card-images.mjs` for the flags.
 
 ## Naming
 
-The output filename must match a character's `id` — that's the whole lookup, in
+The output filename must match the card's `id` — that's the whole lookup, in
 `src/lib/images.ts`:
 
 ```
 public/cards/<id>.webp
 ```
 
-Alternate versions use the **variant's** own `id`, not the character's, which is
-why variant ids have to be unique across the whole roster:
+Alternate versions use the **variant's** own `id`, not the character's, and
+weapons use their `Weapon.id`. All three share one namespace, which is why the
+ids have to be unique across the whole data set:
 
 ```
 public/cards/liu-bei.webp            # base card
 public/cards/liu-bei-forsaken.webp   # CharacterVariant.id
+public/cards/axe.webp                # Weapon.id
 ```
 
 Source filenames are slugified on the way through (`Liu_Bei.png` →
 `liu-bei.webp`), so the id convention holds even if the scans are named
 inconsistently.
 
-Set `Character.image` (or `CharacterVariant.image`) to bypass all of this and
+Set `image` on the character, variant or weapon to bypass all of this and
 point at an arbitrary path or CDN URL. Missing images fall back to an initials
 placeholder, so art can be added incrementally.
 

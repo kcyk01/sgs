@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { CardArtPager } from '../components/CardArtPager'
 import { CardLightbox } from '../components/CardLightbox'
+import { FavouriteButton } from '../components/FavouriteButton'
 import { HealthBadge } from '../components/HealthBadge'
 import { KingdomChip } from '../components/KingdomChip'
 import { RulesText } from '../components/RulesText'
@@ -57,7 +58,13 @@ export default function CharacterDetailPage() {
     <>
       {/* Header follows the visible version — a renamed variant should not sit
           under the base card's name. */}
-      <AppHeader title={version.name} showBack />
+      {/* The heart is keyed to the character, not the shown version, so
+          switching printings never looks like it un-favourited the card. */}
+      <AppHeader
+        title={version.name}
+        showBack
+        actions={<FavouriteButton id={character.id} />}
+      />
       <main className="app__main">
         {/* Name and stats sit above the art so the art can be full-width and
             still leave the abilities section reachable in one short scroll. */}
@@ -120,7 +127,7 @@ export default function CharacterDetailPage() {
       </main>
 
       <CardLightbox
-        character={version}
+        card={version}
         open={zoomedId === version.id}
         onClose={() => setZoomedId(null)}
         caption={
