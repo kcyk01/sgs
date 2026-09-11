@@ -213,6 +213,88 @@
   margin-top: 6px;
 }
 
+/* --- Character grid ------------------------------------------------------- */
+
+/* Two columns at a ~390px viewport gives ~175px-wide art — big enough to match
+   a face against the physical card, which a 52px row thumb never was. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-2);
+}
+
+/* The 720px layout cap would otherwise stretch two tiles to ~340px each. Grow
+   the column count instead, so the art stays a comfortable scanning size.
+   Lives here rather than with the other wide-screen rules in global.css: that
+   file is imported first, so an equal-specificity rule there would lose to the
+   base `.grid` above regardless of the media query. */
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+.card-tile {
+  display: block;
+  background: var(--c-surface);
+  /* Kingdom-tinted per tile, inline — see CharacterTile. 3px, because the
+     kingdom is meant to be readable in peripheral vision while scanning; a
+     hairline reads as a generic card edge rather than as a colour. */
+  border: 3px solid var(--c-border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  /* Same trick as .card-row: skip work for tiles scrolled out of view. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 250px;
+  transition: transform 120ms ease;
+}
+
+.card-tile:active {
+  transform: scale(0.98);
+}
+
+.card-tile__art {
+  position: relative;
+  display: block;
+}
+
+/* Source art is ~600x772, so 4:5 crops a sliver; anchoring to the top keeps
+   the face rather than the boots. Also sizes CardThumb's initials fallback,
+   which is a <span> with the same class. */
+.card-tile__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: center top;
+  background: var(--c-surface-2);
+}
+
+/* Pips ride over the art, so they cost no height in the caption. A gradient
+   scrim isn't enough on busy art — this is an opaque-enough pill sized to the
+   pips, so the count stays countable whatever is behind it. */
+.card-tile__health {
+  position: absolute;
+  left: var(--sp-1);
+  bottom: var(--sp-1);
+  display: flex;
+  padding: 3px var(--sp-1);
+  border-radius: var(--r-sm);
+  background: rgb(0 0 0 / 0.62);
+  backdrop-filter: blur(4px);
+}
+
+/* Deliberately quiet: a label for the art above it, not a heading. */
+.card-tile__name {
+  display: block;
+  padding: var(--sp-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* --- Health badge --------------------------------------------------------- */
 
 /* No pill or tint behind the pips: the card prints them bare, and a red-tinted

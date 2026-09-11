@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AppHeader } from '../components/AppHeader'
 import { CardTypeTabs } from '../components/CardTypeTabs'
-import { CharacterRow } from '../components/CharacterRow'
+import { CharacterTile } from '../components/CharacterTile'
 import { FilterSheet } from '../components/FilterSheet'
 import { SearchBar } from '../components/SearchBar'
 import { characters } from '../data/characters'
@@ -56,9 +56,9 @@ export default function CharacterListPage() {
                 <span>{group.label}</span>
                 <span>{group.items.length}</span>
               </h2>
-              <div className="list">
+              <div className="grid">
                 {group.items.map((c) => (
-                  <CharacterRow key={c.id} character={c} />
+                  <CharacterTile key={c.id} character={c} />
                 ))}
               </div>
             </section>
