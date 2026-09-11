@@ -41,6 +41,7 @@ export const wei: Character[] = [
         name: '[Ability]',
         description:
           'Before any judgement card takes effect, you can use a hand card to replace the judgement card',
+        tags: ['judgement']
       },
     ]
   },
@@ -56,6 +57,7 @@ export const wei: Character[] = [
         description:
           'Every instance you are damaged by another player, you can choose to flip a judgement card.\n' +
           'If the judgement card is not heart-suited, then that player must either take a retaliation damage of 1 health, or discard two cards',
+        tags: ['judgement']
       }
     ]
   },
@@ -98,6 +100,7 @@ export const wei: Character[] = [
         name: '[Ability]',
         description:
           'After a judgement card has taken effect, you can keep that judgement card in your hand',
+        tags: ['judgement']
       },
       {
         name: '[Ability]',
@@ -121,8 +124,9 @@ export const wei: Character[] = [
       {
         name: '[Ability]',
         description:
-          'Before you judgement phase, you can flip a judgement card. If it is black-suited, you can keep that card.\n' +
+          'Before your judgement phase, you can flip a judgement card. If it is black-suited, you can keep that card.\n' +
           'You can repeat this as many times until the judgement card is red-suited',
+        tags: ['judgement']
       }
     ]
   },
@@ -154,6 +158,7 @@ export const wei: Character[] = [
         name: '[Ability]',
         description:
           'At the end of your turn (after discard phase), you can draw 3 cards and then flip your character card',
+        tags: ['flip']
       }
     ],
     variants: [
@@ -187,6 +192,7 @@ export const wei: Character[] = [
           'Once per turn, during your action phase, you can points duel another player with more health than you.\n' +
           'If you win, then that player instantly deals 1 damage to another player within their attack range\n' +
           'If you lose, then that player deals 1 damage to you',
+        tags: ['points duel']
       },
       {
         name: '[Ability]',
@@ -226,12 +232,13 @@ export const wei: Character[] = [
         name: '[Ability]',
         description:
           'Every instance you take damage, you can choose another player to get X cards (X being the amount of life you are down after the damage). That player then flips their character card.',
+        tags: ['flip']
       },
       {
         name: '[King Ability]',
         description:
           'Whenever a character from the Wei kingdom flips a black-suited judgement card, they can choose to let you draw a card',
-        tags: ['king']
+        tags: ['king', 'judgement']
       }
     ],
   },
@@ -266,6 +273,7 @@ export const wei: Character[] = [
           'Every instance outside your turn you lose any of your cards, you can flip a judgement card.\n' +
           'If the judgement card is not heart-suited, you can place it on your character card as a "Farm".\n' +
           'Every farm you have decreases distance calculation by 1',
+        tags: ['judgement']
       },
       {
         name: '[Awakening Ability]',
@@ -286,12 +294,14 @@ export const wei: Character[] = [
         name: '[Ability]',
         description:
           'When another player\'s club-suited judgement card or discarded card enters the discard pile, you can take it into your hand',
+        tags: ['judgement']
       },
       {
         name: '[Ability]',
         description:
           'When your character card is face up, you can flip your character card over to be used as [Wine].\n' +
           'When your character card is face down, taking damage and after damage calculation, you can flip your character card back to face up',
+        tags: ['flip']
       }
     ],
   },

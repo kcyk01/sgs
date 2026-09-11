@@ -102,12 +102,13 @@ export const shu: Character[] = [
         name: '[Enforced Ability]',
         description:
           'Your distance to other players is always reduced by 1',
-        tags: ['-1 horse'],
+        tags: ['enforced', '-1 horse'],
       },
       {
         name: '[Ability]',
         description:
           'When you use an [Attack] on another player, you can flip a judgement card. If the judgement card is red-suited, the targeted player cannot use [Dodge]',
+        tags: ['judgement']
       }
     ]
   },
@@ -246,6 +247,7 @@ export const shu: Character[] = [
         name: '[Ability]',
         description:
           'Every instance your [Attack] causes damage on a player, you can points duel that player. If you win the points duel, you can take a card from that player into your hand',
+        tags: ['points duel']
       },
     ]
   },
@@ -366,6 +368,7 @@ export const shu: Character[] = [
           '1. Draw 2 cards\n' +
           '2. Heal 1 health\n' +
           '3. Restore their Character Card to normal orientation (not flipped and not chained)',
+        tags: ['heal']
       },
     ]
   },

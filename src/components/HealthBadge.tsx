@@ -8,7 +8,7 @@ import { assetUrl } from '../lib/images'
  * would wrap out of a list row, and by then the shape has stopped being
  * countable at a glance anyway, which was the whole point of pips.
  */
-const MAX_PIPS = 6
+const MAX_PIPS = 8
 
 function Pip() {
   return (

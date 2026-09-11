@@ -23,6 +23,7 @@ export const cardTypes: Record<string, CardType> = {
   Attack: 'basic',
   Dodge: 'basic',
   Peach: 'basic',
+  Wine: 'basic',
 
   // Tool cards.
   Chains: 'tool',
@@ -33,6 +34,7 @@ export const cardTypes: Record<string, CardType> = {
   Arrows: 'tool',
   Steal: 'tool',
   Bridge: 'tool',
+  Lightning: 'tool',
   "Skip Drawing Phase": 'tool',
   "Skip Action Phase": 'tool',
 

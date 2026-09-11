@@ -117,7 +117,7 @@ export const wu: Character[] = [
         name: '[Enforced Ability]',
         description:
           'You can not be the target of [Steal] and [Skip Action Phase]',
-        tags: ['Enforced'],
+        tags: ['enforced'],
       },
       {
         name: '[Ability]',
@@ -137,6 +137,7 @@ export const wu: Character[] = [
         name: '[Ability]',
         description:
           'Once per turn, during your action phase, you can discard 2 hand cards and choose an injured male character for both of you to heal 1 health each',
+        tags: ['heal']
       },
       {
         name: '[Ability]',
@@ -194,6 +195,7 @@ export const wu: Character[] = [
           'Once per turn, during your action phase, you can points duel any other player.\n' +
           'If you win, then you can play an additional [Attack] this turn, all your [Attack] cards can have an additional target and not require attack range\n' +
           'If you lose, you cannot attack the rest of this turn',
+        tags: ['points duel']
       }
     ],
   },
@@ -266,7 +268,7 @@ export const wu: Character[] = [
           'Other characters of the Wu kingdom can choose to points duel you.\n' +
           'If you win, you can get both of the cards used in the points duel.\n' +
           'After awakening, you have the option to refuse points duel.',
-        tags: ['king']
+        tags: ['king', 'points duel']
       }
     ],
   },
@@ -319,6 +321,7 @@ export const wu: Character[] = [
         description:
           'When any player (including yourself) is on the brink of death, you can reveal 1 hand card of that player.\n' +
           'If the revealed card is a non-basic card, then it is discarded and the player heals 1 life',
+        tags: ['heal']
       }
     ],
   },
@@ -332,6 +335,7 @@ export const wu: Character[] = [
         name: '[Ability]',
         description:
           'Every time your [Attack] causes damage to another player, you can make the target player draw X cards (X being the amount of health left after damage is resolved, capped at 5), and then that player must flip their character card',
+        tags: ['flip']
       }
     ],
   },
