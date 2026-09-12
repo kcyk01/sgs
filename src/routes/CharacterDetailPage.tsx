@@ -50,9 +50,9 @@ export default function CharacterDetailPage() {
   // out, which keeps the list's scroll position and filters intact.
 
   useEffect(() => {
-    if (version) document.title = `${version.name} · Card Codex`
+    if (version) document.title = `${version.name} · SGS Codex`
     return () => {
-      document.title = 'Card Codex'
+      document.title = 'SGS Codex'
     }
   }, [version])
 
