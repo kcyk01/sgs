@@ -20,8 +20,12 @@ export async function loadRecognizer(): Promise<CardRecognizer | null> {
   return recognizer
 }
 
-/** Below this confidence, a match is treated as "keep looking". */
+/**
+ * Below this confidence a match is offered as a suggestion rather than asserted.
+ *
+ * The scanner analyses one still on demand, so there is no next frame to defer
+ * to — "keep looking" is not an option the way it was for a live feed. Falling
+ * back to a ranked shortlist is strictly more useful than showing nothing, since
+ * the user can settle an ambiguous result at a glance.
+ */
 export const MATCH_THRESHOLD = 0.6
-
-/** How often to sample frames. ~4/s is responsive without pinning the CPU. */
-export const SAMPLE_INTERVAL_MS = 250

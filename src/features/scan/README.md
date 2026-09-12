@@ -1,7 +1,15 @@
 # Card scanning
 
-Point the rear camera at a character card and get the card page. Runs entirely on
-the client, with no model weights, no inference runtime and no network request.
+Line a character card up in the guide, take a picture of it, get the card page.
+Runs entirely on the client, with no model weights, no inference runtime and no
+network request.
+
+It is a shutter, not a live feed. Continuously sampling a moving camera spends
+most of its frames on motion blur and half-framed cards, and the result label
+flickers between near-tied candidates while the user is still lining the card up.
+A still the user chose is steadier, is easier to reason about — what got analysed
+is exactly what they can see — and affords a ~200 ms analysis budget rather than
+the ~10 ms a 4 fps loop could pay for.
 
 ## How it works
 
@@ -12,14 +20,14 @@ nearest-neighbour lookup against precomputed descriptors, and adding a card is a
 row in a generated table rather than a retrained model.
 
 ```
-video frame
-  -> reticle crop          model/frame.ts        the part the user is aiming at
+captured still           ScanPage.tsx          one frame, at camera resolution
+  -> reticle crop          model/frame.ts        the part the user aimed at
   -> corner detection      pipeline/rectify.ts   find the card's four corners
   -> perspective warp      pipeline/homography.ts flatten to a canonical card
   -> 16 artwork crops      pipeline/rectify.ts   candidate regions (see below)
   -> 280-byte descriptors  pipeline/descriptor.ts 16x16 luma grid + hue histogram
-  -> nearest neighbour     pipeline/match.ts     ~70 references, best crop each
-  -> temporal vote         pipeline/vote.ts      agree across frames before showing
+  -> nearest neighbour     pipeline/match.ts     ~75 references, best crop each
+  -> ranked shortlist      ScanPage.tsx          lead match, then runners-up
 ```
 
 The warp is what makes the rest cheap. Scale, rotation and perspective are the
@@ -36,7 +44,7 @@ of a keypoint search, which is the entire reason this needs no OpenCV.js.
 | `model/localRecognizer.ts` | Wires the pipeline to `CardRecognizer` |
 | `model/references.ts` | GENERATED descriptors — `npm run descriptors` |
 | `pipeline/*.ts` | Platform-free image maths, shared with the build scripts |
-| `../../routes/ScanPage.tsx` | UI: viewport, reticle, status, match result |
+| `../../routes/ScanPage.tsx` | UI: viewport, reticle, capture/retake, results |
 
 ## The artwork window
 
@@ -75,8 +83,8 @@ verdict:
 On 14 real card photos (`npm run scan:eval -- --in test-images`):
 
 ```
-top-1 recall     71.4%
-top-5 recall     78.6%
+top-1 recall     78.6%
+top-5 recall     85.7%
 card detected   100.0%
 ```
 
@@ -87,22 +95,20 @@ cheapest way to make this number mean something.
 Every failure is a photo where the *card* was not cleanly isolated: one shot
 inside a box of other cards, one held in fingers at a steep angle, both with
 holographic foil washing out the artwork. Corner detection reported success and
-locked onto the surrounding clutter. Two caveats on reading those numbers:
+locked onto the surrounding clutter.
 
-- **The eval is harsher than the app.** It searches the whole photo, whereas the
-  app searches only the reticle the user is aiming through, which excludes most
-  of the clutter that caused these failures.
-- **It is single-frame.** The app votes over 5 consecutive frames, and these
-  failures are exactly the transient kind voting is meant to absorb.
+One caveat on reading these: **the eval is harsher than the app.** It searches
+the whole photo, whereas the app searches only the reticle the user aimed
+through, which excludes most of the clutter that caused these failures. So real
+accuracy should sit above these figures — but that is an argument for measuring
+in the app, not for assuming it. Synthetic photos (reference art composited into
+a card frame, tilted, dimmed, blurred) score 100% top-1, which confirms the
+machinery is sound and isolates the gap to the domain shift between digital art
+and photographed foil-finished prints.
 
-So real scanner accuracy should sit above these figures — but that is an argument
-for measuring in the app, not for assuming it. Synthetic photos (reference art
-composited into a card frame, tilted, dimmed, blurred) score 100% top-1, which
-confirms the machinery is sound and isolates the gap to the domain shift between
-digital art and photographed foil-finished prints.
-
-A full `recognize()` costs ~10 ms per frame on a laptop — rectify 4.3 ms,
-16 windows 4.6 ms, match 0.4 ms — against a 250 ms sampling interval.
+A full `recognize()` costs ~13 ms on a laptop — rectify 6.4 ms, 16 windows
+6.2 ms, match 0.5 ms — well inside the budget of a deliberate capture, which is
+what paid for `CAPTURE_WIDTH` going from 320 to 480.
 
 ## Escalating
 
@@ -123,7 +129,7 @@ Every step is designed to be replaced independently.
 ## Constraints already designed around
 
 - **Lazy loading.** `ScanPage` is a `React.lazy` route and the recognizer is
-  behind a dynamic `import()`, so neither the matcher nor the ~21 kB of
+  behind a dynamic `import()`, so neither the matcher nor the ~22 kB of
   descriptors touch the initial bundle. `model/references.ts` deliberately does
   not live in `src/data/`, which `vite.config.ts` places in an eagerly-loaded
   chunk.
@@ -136,8 +142,21 @@ Every step is designed to be replaced independently.
   needs them.
 - **Secure context.** `getUserMedia` needs https or localhost. For phone testing:
   `npm run dev -- --host` plus a tunnel, or serve `dist/` over https.
-- **Frame sampling.** Recognition runs on an interval (`SAMPLE_INTERVAL_MS`), not
-  every rAF tick, to keep phones cool.
+- **One capture, one analysis.** There is no sampling loop and no temporal
+  voting: `recognize` is called once per shutter press, on a frame the user
+  chose. If tap-shake turns out to blur captures in practice, the fix is a short
+  burst plus a majority vote in `ScanPage`, not a return to live sampling.
+- **All five results are shown, with their art.** `recognize` returns a ranked
+  shortlist and the page lists every entry, because the quickest way to confirm
+  a scan is to look at the picture — a name and a percentage ask the user to
+  trust a number instead. The rows reuse `.card-row` and `CardThumb`, so a scan
+  result looks like the same card it does everywhere else in the app. This is
+  only legible because the ranking is computed once: under a live feed the list
+  reshuffled every frame.
+- **`CardMatch.artId` is separate from `characterId`.** The route goes to the
+  character, but the thumbnail shows the *printing* that matched — someone
+  holding an alternate art should see that art in the results, not the base
+  printing they are not looking at.
 - **Reticle geometry is duplicated** between `model/frame.ts` and
   `.scan__reticle` in `styles/components.css`, and must be changed in both. The
   capture path has to undo `object-fit: cover` to find the region the user is

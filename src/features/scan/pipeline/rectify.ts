@@ -23,8 +23,8 @@ export const CARD_ASPECT = 63 / 88
 /**
  * Size of the flattened card. Small on purpose: the descriptor immediately
  * reduces it to a 16x16 grid, so resolution beyond what survives that averaging
- * is pure per-frame cost. 200x280 keeps a full warp comfortably inside the
- * 250 ms sampling budget on a mid-range phone.
+ * buys nothing. 200x280 keeps a full warp well inside the budget of a single
+ * on-demand capture, even on a mid-range phone.
  */
 export const CARD_WIDTH = 200
 export const CARD_HEIGHT = Math.round(CARD_WIDTH / CARD_ASPECT)
@@ -74,6 +74,19 @@ export function artWindowRects(card: Raster): Rect[] {
     height: Math.min(height, 1 - top) * card.height,
   }))
 }
+
+/**
+ * Width the search region is captured at before any of this runs.
+ *
+ * Measured, not guessed. At 320 the test photos scored 78.6% top-5; at 480 they
+ * scored 85.7%, and 640 and 800 scored the same as 480 — so this is where the
+ * curve flattens. The extra pixels help the corner search find clean edges more
+ * than they help the descriptor, which averages most of them away regardless.
+ *
+ * Affordable only because the scanner analyses one still on demand. The old
+ * 4 fps live loop could not have paid for it.
+ */
+export const CAPTURE_WIDTH = 480
 
 /** Working width for the corner search. Enough edge detail, ~16k pixels of work. */
 const DETECT_WIDTH = 128

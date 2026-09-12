@@ -5,9 +5,17 @@
  */
 
 export interface CardMatch {
-  /** Character.id of the matched card. */
+  /** Character.id of the matched card — the `/c/:id` route to offer. */
   characterId: string
-  /** 0–1. The UI shows the top match once it clears a threshold. */
+  /**
+   * Id of the *printing* that matched, which is a variant id when an alternate
+   * art scored best. Carried separately from `characterId` so the UI can show
+   * the artwork the scanner actually recognised: a user holding the alternate
+   * art of a card should see that art in the results, not the base printing
+   * they are not looking at.
+   */
+  artId: string
+  /** 0–1. Above `MATCH_THRESHOLD` the top match is asserted rather than suggested. */
   confidence: number
 }
 

@@ -43,6 +43,7 @@ import { describeWindows, decodeDescriptor } from '../src/features/scan/pipeline
 import { matchDescriptor } from '../src/features/scan/pipeline/match.ts'
 import {
   ART_WINDOWS,
+  CAPTURE_WIDTH,
   artWindowRects,
   rectifyCard,
 } from '../src/features/scan/pipeline/rectify.ts'
@@ -57,22 +58,18 @@ const flag = (name, fallback) => {
 const inDir = path.resolve(flag('in', 'eval-photos'))
 const sweep = args.includes('--sweep')
 
-/**
- * Width photos are decoded at.
- *
- * Matches `CAPTURE_WIDTH` in model/frame.ts. Evaluating at full camera
- * resolution would measure a pipeline the app never runs, and would flatter it:
- * more pixels means cleaner edges for the corner search than a phone actually
- * provides.
- */
-const CAPTURE_WIDTH = 320
-
 const references = REFERENCE_ROWS.map(([artId, characterId, encoded]) => ({
   artId,
   characterId,
   descriptor: decodeDescriptor(encoded),
 }))
 
+/**
+ * Decoded at the app's own capture width, imported rather than repeated.
+ * Evaluating at full photo resolution would measure a pipeline the app never
+ * runs, and would flatter it: more pixels means cleaner edges for the corner
+ * search than a phone actually provides.
+ */
 async function loadPhoto(file) {
   const { data, info } = await sharp(file)
     .rotate() // honour EXIF orientation, or every portrait phone shot arrives sideways

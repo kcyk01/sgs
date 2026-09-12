@@ -1,4 +1,5 @@
 import type { Raster, Rect } from '../pipeline/image.ts'
+import { CAPTURE_WIDTH } from '../pipeline/rectify.ts'
 
 /**
  * The browser half of the scanner: turning a live `<video>` into the plain pixel
@@ -11,23 +12,13 @@ import type { Raster, Rect } from '../pipeline/image.ts'
  */
 
 /**
- * Resolution the search region is captured at.
- *
- * The corner search runs at 128px wide and the warp output is 200px, so anything
- * beyond ~320 is thrown away immediately. Capturing small is most of what keeps a
- * frame cheap: `drawImage` does the downscale on the GPU, so the expensive
- * per-pixel JavaScript downstream only ever sees a small buffer.
- */
-const CAPTURE_WIDTH = 320
-
-/**
  * Geometry of the alignment reticle, mirroring `.scan__viewport` and
  * `.scan__reticle` in styles/components.css.
  *
  * These numbers are duplicated from CSS and must be changed in both places
  * together. The alternative — measuring the live elements with
- * `getBoundingClientRect` — reads layout on every sampled frame and still has to
- * undo `object-fit: cover` by hand, so it trades a comment for a reflow without
+ * `getBoundingClientRect` — reads layout during capture and still has to undo
+ * `object-fit: cover` by hand, so it trades a comment for a reflow without
  * removing the coupling.
  */
 const VIEWPORT_ASPECT = 3 / 4
@@ -94,11 +85,11 @@ function sourceSize(source: CanvasImageSource): { width: number; height: number 
 /**
  * Creates a reusable capture surface.
  *
- * One canvas for the life of the scanner rather than one per frame: allocating a
- * canvas 4 times a second churns GPU-backed memory and, on Safari, is a reliable
- * way to get the whole page throttled. `willReadFrequently` tells the browser to
- * keep the backing store somewhere `getImageData` can reach cheaply, which is the
- * one thing this canvas exists to do.
+ * One canvas for the life of the scanner rather than one per capture: the page
+ * allows retaking freely, and churning GPU-backed canvases is a reliable way to
+ * get a Safari tab throttled. `willReadFrequently` tells the browser to keep the
+ * backing store somewhere `getImageData` can reach cheaply, which is the one
+ * thing this canvas exists to do.
  */
 export function createCapture(): {
   capture(source: CanvasImageSource): Raster | null

@@ -1,27 +1,52 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
+import { CardThumb } from '../components/CardThumb'
 import { characterById } from '../data/characters'
-import {
-  MATCH_THRESHOLD,
-  SAMPLE_INTERVAL_MS,
-  loadRecognizer,
-} from '../features/scan/recognizer'
+import { characterVersions } from '../lib/versions'
+import { MATCH_THRESHOLD, loadRecognizer } from '../features/scan/recognizer'
 import type { CardMatch, CardRecognizer, RecognizerStatus } from '../features/scan/types'
 import { useCamera } from '../features/scan/useCamera'
+import type { Character } from '../types/character'
+import type { CardArtSource } from '../lib/images'
 
 /**
- * Camera scanner. Recognition sits behind the `CardRecognizer` interface and is
- * loaded lazily, so this page is unaffected by how a card is actually identified
- * — see src/features/scan/README.md.
+ * Camera scanner: frame the card, take a still, identify it.
+ *
+ * Deliberately a shutter rather than a live feed. Continuously sampling a moving
+ * camera spends most of its frames on motion blur and half-framed cards, and the
+ * result label flickers between near-tied candidates while the user is still
+ * lining the card up. Freezing one frame the user chose is steadier and easier to
+ * reason about: what got analysed is exactly what they can see.
+ *
+ * It also buys accuracy. A one-shot analysis has a ~200 ms budget instead of the
+ * ~10 ms a 4 fps loop could afford, which is spent capturing at higher
+ * resolution — worth about 7 points of top-5 recall on the test photos.
+ *
+ * Recognition sits behind the `CardRecognizer` interface and is loaded lazily, so
+ * this page is unaffected by how a card is actually identified — see
+ * src/features/scan/README.md.
  */
+
+type Phase = 'framing' | 'analyzing' | 'result'
+
+interface Suggestion {
+  match: CardMatch
+  /** The card page this result links to. */
+  character: Character
+  /** The exact printing that matched, whose art the row shows. */
+  printing: CardArtSource & { name: string }
+}
+
 export default function ScanPage() {
   const { videoRef, state, error, start, stop } = useCamera()
   const recognizerRef = useRef<CardRecognizer | null>(null)
+  const stillRef = useRef<HTMLCanvasElement>(null)
   const [status, setStatus] = useState<RecognizerStatus>('loading')
-  const [match, setMatch] = useState<CardMatch | null>(null)
+  const [phase, setPhase] = useState<Phase>('framing')
+  const [matches, setMatches] = useState<CardMatch[]>([])
 
-  // Load (or discover the absence of) the model once.
+  // Load (or discover the absence of) the recognizer once.
   useEffect(() => {
     let cancelled = false
     loadRecognizer()
@@ -43,34 +68,58 @@ export default function ScanPage() {
     }
   }, [])
 
-  // Sample frames while the camera is live and a model is loaded.
-  useEffect(() => {
-    if (state !== 'live' || status !== 'ready') return
-    let running = true
+  const capture = useCallback(async () => {
+    const recognizer = recognizerRef.current
+    const video = videoRef.current
+    const canvas = stillRef.current
+    // readyState < 2 means no frame has decoded yet. Capturing here would freeze
+    // a blank canvas and then confidently analyse nothing.
+    if (!recognizer || !video || !canvas || video.readyState < 2) return
 
-    const timer = window.setInterval(() => {
-      const recognizer = recognizerRef.current
-      const video = videoRef.current
-      if (!recognizer || !video || video.readyState < 2) return
-      void recognizer
-        .recognize(video)
-        .then((matches) => {
-          if (!running) return
-          const best = matches[0]
-          setMatch(best && best.confidence >= MATCH_THRESHOLD ? best : null)
-        })
-        .catch(() => {
-          /* Ignore a single bad frame; the next tick retries. */
-        })
-    }, SAMPLE_INTERVAL_MS)
+    // Captured at the camera's own resolution rather than the displayed size:
+    // the recognizer downsamples to its own working width, and starting from the
+    // full frame keeps that its decision rather than the CSS layout's.
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
 
-    return () => {
-      running = false
-      window.clearInterval(timer)
+    setPhase('analyzing')
+    try {
+      setMatches(await recognizer.recognize(canvas))
+    } catch {
+      setMatches([])
     }
-  }, [state, status, videoRef])
+    setPhase('result')
+  }, [videoRef])
 
-  const matched = match ? characterById.get(match.characterId) : undefined
+  const retake = useCallback(() => {
+    setMatches([])
+    setPhase('framing')
+  }, [])
+
+  // Stopping the camera discards the capture too. Otherwise restarting it would
+  // surface the previous scan's result next to a fresh preview, as though the
+  // new session had already identified something.
+  const stopCamera = useCallback(() => {
+    retake()
+    stop()
+  }, [retake, stop])
+
+  // Matches naming a card that is not in the roster cannot be linked to, so they
+  // are dropped here rather than guarded at each render site. Resolving the
+  // printing through `characterVersions` rather than building `{ id, name }` by
+  // hand keeps any per-version `image` override working.
+  const suggestions: Suggestion[] = matches.flatMap((match) => {
+    const character = characterById.get(match.characterId)
+    if (!character) return []
+    const versions = characterVersions(character)
+    const printing = versions.find((v) => v.id === match.artId) ?? versions[0]
+    return [{ match, character, printing }]
+  })
+
+  const confident =
+    suggestions.length > 0 && suggestions[0].match.confidence >= MATCH_THRESHOLD
+  const showStill = phase !== 'framing'
 
   return (
     <>
@@ -84,24 +133,21 @@ export default function ScanPage() {
               // Required on iOS: inline playback, no audio.
               playsInline
               muted
-              hidden={state !== 'live'}
+              hidden={state !== 'live' || showStill}
             />
-            {state === 'live' && <div className="scan__reticle" />}
+            <canvas ref={stillRef} className="scan__still" hidden={!showStill} />
+            {state === 'live' && !showStill && <div className="scan__reticle" />}
             {state !== 'live' && (
               <p className="scan__placeholder">
                 {state === 'starting'
                   ? 'Starting camera…'
                   : (error ??
-                    'Point your rear camera at a card to identify it.')}
+                    'Line a card up inside the guide, then take a picture of it.')}
               </p>
             )}
           </div>
 
-          {state === 'live' ? (
-            <button type="button" className="btn btn--block" onClick={stop}>
-              Stop camera
-            </button>
-          ) : (
+          {state !== 'live' && (
             <button
               type="button"
               className="btn btn--primary btn--block"
@@ -109,6 +155,33 @@ export default function ScanPage() {
               disabled={state === 'starting'}
             >
               {state === 'denied' ? 'Try again' : 'Start camera'}
+            </button>
+          )}
+
+          {state === 'live' && phase === 'framing' && (
+            <>
+              <button
+                type="button"
+                className="btn btn--primary btn--block"
+                onClick={() => void capture()}
+                disabled={status !== 'ready'}
+              >
+                Capture
+              </button>
+              <button type="button" className="btn btn--block" onClick={stopCamera}>
+                Stop camera
+              </button>
+            </>
+          )}
+
+          {state === 'live' && showStill && (
+            <button
+              type="button"
+              className="btn btn--block"
+              onClick={retake}
+              disabled={phase === 'analyzing'}
+            >
+              {phase === 'analyzing' ? 'Identifying…' : 'Retake'}
             </button>
           )}
 
@@ -125,15 +198,58 @@ export default function ScanPage() {
 
           {status === 'error' && (
             <p className="muted" style={{ fontSize: '0.875rem' }}>
-              The recognition model failed to load.
+              The card recogniser failed to load.
             </p>
           )}
 
-          {matched && match && (
-            <Link className="btn btn--primary btn--block" to={`/c/${matched.id}`}>
-              {matched.name} · {Math.round(match.confidence * 100)}%
-            </Link>
-          )}
+          {/* Every candidate is listed, with the art that matched, because the
+              quickest way to confirm a scan is to look at the picture — a name
+              and a percentage ask the user to trust a number instead. Only a
+              once-analysed still can do this: under a live feed the ranking
+              reshuffled every frame and was unreadable. */}
+          <div aria-live="polite">
+            {phase === 'result' && (
+              <p className="scan__verdict">
+                {suggestions.length === 0
+                  ? 'No card found. Fill more of the guide and try again.'
+                  : confident
+                    ? 'Best match — tap to open, or pick another below.'
+                    : 'Not sure about that one. Closest matches:'}
+              </p>
+            )}
+
+            {phase === 'result' && suggestions.length > 0 && (
+              <ol className="scan__results">
+                {suggestions.map(({ match, character, printing }, index) => (
+                  <li key={match.characterId}>
+                    <Link
+                      to={`/c/${character.id}`}
+                      className={`card-row scan__result${
+                        index === 0 && confident ? ' scan__result--lead' : ''
+                      }`}
+                    >
+                      <CardThumb
+                        // Keyed on the printing so a failed image in one row
+                        // does not leak its fallback into the next scan's row.
+                        key={printing.id}
+                        card={printing}
+                        className="card-row__thumb"
+                      />
+                      <div className="card-row__body">
+                        <div className="card-row__name">{character.name}</div>
+                        {character.title && (
+                          <div className="card-row__title">{character.title}</div>
+                        )}
+                      </div>
+                      <span className="scan__score">
+                        {Math.round(match.confidence * 100)}%
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
       </main>
     </>
