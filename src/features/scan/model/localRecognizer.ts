@@ -2,9 +2,9 @@ import type { CardMatch, CardRecognizer } from '../types.ts'
 import { decodeDescriptor, describeWindows } from '../pipeline/descriptor.ts'
 import { matchDescriptor } from '../pipeline/match.ts'
 import type { Candidate, ReferenceCard } from '../pipeline/match.ts'
-import { artWindowRects, rectifyCard } from '../pipeline/rectify.ts'
+import { queryWindowRects, rectifyCard } from '../pipeline/rectify.ts'
 import { createCapture } from './frame.ts'
-import { REFERENCE_ROWS } from './references.ts'
+import { BUILT_FROM, REFERENCE_ROWS } from './references.ts'
 
 /**
  * The card recognizer: reticle capture -> rectify -> describe -> match.
@@ -65,7 +65,9 @@ export function createRecognizer(): CardRecognizer {
       if (!region) return []
 
       const { card } = rectifyCard(region)
-      const queries = describeWindows(card, artWindowRects(card))
+      // How the card is cropped depends on what the references describe — the
+      // generated table says which, so the two can never silently disagree.
+      const queries = describeWindows(card, queryWindowRects(card, BUILT_FROM))
       return matchDescriptor(queries, references).slice(0, RESULT_LIMIT).map(toMatch)
     },
 

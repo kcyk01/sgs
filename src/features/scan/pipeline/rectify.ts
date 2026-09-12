@@ -101,6 +101,43 @@ export function artWindowRects(card: Raster): Rect[] {
 }
 
 /**
+ * What the reference descriptors were built from, which decides how a captured
+ * card has to be cropped before it can be compared against them.
+ *
+ * - `artwork` — references are the art-only crops in `public/cards/`. The camera
+ *   sees a whole card, so the artwork has to be cut back out of it, and where
+ *   exactly is a guess that varies per card. Hence `ART_WINDOWS`.
+ * - `full-card` — references are scans of whole cards, from `full-card/`. The
+ *   correspondence is then exact: compare the whole flattened card against the
+ *   whole reference, no cropping and nothing to calibrate. The frame, name
+ *   banner, pips and rules box stop being contamination to remove and start
+ *   being signal, since they differ between cards.
+ *
+ * The two are mutually exclusive. A whole-card query scores well against
+ * whole-card references and badly against artwork ones, so a half-converted
+ * reference table would systematically favour whichever kind matched the
+ * framing — which is why the mode is recorded in the generated module rather
+ * than assumed.
+ */
+export type ReferenceMode = 'artwork' | 'full-card'
+
+/**
+ * The crops of a flattened card to compare against the references.
+ *
+ * One window in `full-card` mode: the card itself. Measured on the two available
+ * full-card scans, jittering the edges by a few percent raised the margin
+ * slightly — but with only two references in play there is no third card for the
+ * extra windows to flatter, so that is not evidence. Re-measure before adding
+ * any: the artwork-mode grid taught us that extra windows can and do make things
+ * worse.
+ */
+export function queryWindowRects(card: Raster, mode: ReferenceMode): Rect[] {
+  return mode === 'full-card'
+    ? [{ x: 0, y: 0, width: card.width, height: card.height }]
+    : artWindowRects(card)
+}
+
+/**
  * Width the search region is captured at before any of this runs.
  *
  * Measured: 320, 400 and 480 all score 81.3% top-1 on the test photos, while 640

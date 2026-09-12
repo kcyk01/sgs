@@ -13,9 +13,9 @@ the ~10 ms a 4 fps loop could pay for.
 
 ## How it works
 
-The roster is a **closed set** — ~70 character printings, each with exactly one
-clean reference image in `public/cards/`. That makes this a retrieval problem
-rather than a classification one, so there is nothing to train: recognition is a
+The roster is a **closed set** — ~70 character printings, each with one scanned
+reference card in `full-card/`. That makes this a retrieval problem rather than a
+classification one, so there is nothing to train: recognition is a
 nearest-neighbour lookup against precomputed descriptors, and adding a card is a
 row in a generated table rather than a retrained model.
 
@@ -24,9 +24,8 @@ captured still           ScanPage.tsx          one frame, at camera resolution
   -> reticle crop          model/frame.ts        the part the user aimed at
   -> corner detection      pipeline/rectify.ts   find the card's four corners
   -> perspective warp      pipeline/homography.ts flatten to a canonical card
-  -> 12 artwork crops      pipeline/rectify.ts   candidate regions (see below)
-  -> 280-byte descriptors  pipeline/descriptor.ts 16x16 luma grid + hue histogram
-  -> nearest neighbour     pipeline/match.ts     ~75 references, best crop each
+  -> 280-byte descriptor   pipeline/descriptor.ts 16x16 luma grid + hue histogram
+  -> nearest neighbour     pipeline/match.ts     ~70 whole-card references
   -> ranked shortlist      ScanPage.tsx          lead match, then runners-up
 ```
 
@@ -42,41 +41,43 @@ of a keypoint search, which is the entire reason this needs no OpenCV.js.
 | `useCamera.ts` | `getUserMedia` lifecycle (rear camera, cleanup, permissions) |
 | `model/frame.ts` | The only DOM-aware file: video -> pixels, and reticle geometry |
 | `model/localRecognizer.ts` | Wires the pipeline to `CardRecognizer` |
-| `model/references.ts` | GENERATED descriptors — `npm run descriptors` |
+| `model/references.ts` | GENERATED descriptors + `BUILT_FROM` mode |
 | `pipeline/*.ts` | Platform-free image maths, shared with the build scripts |
 | `../../routes/ScanPage.tsx` | UI: viewport, reticle, capture/retake, results |
 
-## The artwork window
+## What the references are
 
-The single most important thing to know when changing this: **the reference
-images are artwork crops, not whole cards.** No frame, no name, no health, no
-rules box. The camera sees a whole card, so after the warp the artwork has to be
-cut back out of it before the two are comparable. That is `ART_WINDOWS` in
-`pipeline/rectify.ts` — 12 candidate crops, each reference scored at whichever
-one suits it best.
+**Whole cards, not artwork.** `full-card/<card-id>.jpg` holds a scan of each
+printed card — frame, kingdom symbol, health pips, name banner, artwork, rules
+box and all. `npm run descriptors -- --full-card` turns each into one descriptor.
 
-The trims are **measured, not guessed**. Searching every crop of every test photo
-against its own correct reference put the ideal window at a median of
-`left 0.16, right 0.08, top 0.08, bottom 0.08`, and those land on real things:
-the vertical **name banner** down the left, the **health pips** across the top,
-the **rules box** across the bottom.
+This is the single most important decision in the feature, and it was originally
+made the other way. The app used to match against the art-only crops in
+`public/cards/`, which forced it to cut the artwork back out of a photographed
+card — and the artwork sits at a different offset and scale on every card, so
+that crop was a per-card guess. A 12-window search existed purely to grope for
+it. Matching whole card against whole card removes the problem rather than
+managing it:
 
-Two consequences that are easy to get wrong:
+- **The correspondence is exact.** No crop to calibrate, nothing to keep in sync.
+- **The furniture becomes signal.** Name banner, pips and rules box differ
+  between cards, so including them helps rather than contaminates.
+- **It is ~12x cheaper.** One descriptor per capture instead of twelve.
+- **It measured better**: top-1 81.3% -> 87.5% on the test photos.
 
-- **The window must be asymmetric.** The left trim is about twice the right,
-  because the furniture is on the left. An earlier symmetric grid capped at 0.06
-  a side could not express that, so every photo was matching on artwork
-  contaminated with banner and pips — which is why recognition worked for cards
-  with distinctive art and failed for the rest. Fixing it moved top-1 from 68.8%
-  to 81.3%.
-- **More windows is not better.** Each window is another chance for a *wrong*
-  card to find a flattering crop, so the search has a real optimum, not just a
-  cost ceiling. 12 windows scored 81.3%; an 18-window grid that merely added a
-  deeper bottom trim dropped to 75.0%. Do not widen the grid without re-running
-  the eval.
+`ReferenceMode` in `pipeline/rectify.ts` still supports the old `artwork` mode,
+and the generated table records which one built it via `BUILT_FROM`. The
+recognizer and the eval both read that rather than assuming, because the two need
+opposite treatment — a whole-card query scores well against whole-card references
+and badly against artwork ones — so a half-converted table would fail silently,
+ranking by which kind happened to match the framing. **The modes cannot be
+mixed.**
 
-Re-measure with `npm run scan:eval -- --sweep`, which scores each window alone
-and all of them together.
+### Adding cards
+
+Drop a scan into `full-card/` named `<card-id>.jpg` and re-run
+`npm run descriptors -- --full-card`. It prints coverage and names anything
+missing; a card with no scan simply cannot be recognised.
 
 ## Measuring it
 
@@ -97,7 +98,7 @@ verdict:
 On 16 real card photos (`npm run scan:eval -- --in test-images`):
 
 ```
-top-1 recall     81.3%
+top-1 recall     87.5%
 top-5 recall     87.5%
 card detected   100.0%
 ```
@@ -106,21 +107,19 @@ Treat single figures here with suspicion: at n=16 one photo is 6.25%, so top-5
 moves a whole band when one card shifts by one rank. Growing the photo set is the
 cheapest way to make this number mean something.
 
-The three remaining misses are `cao-cao` (shot inside a box of other cards,
-holographic foil), `sima-yi` (held in fingers at a steep angle, foil) and
-`zhang-fei` (#3 — the one card the re-centred window made worse). The first two
-are capture problems: corner detection reported success and locked onto the
-surrounding clutter.
+Both remaining misses are capture problems, not matching problems: `cao-cao` was
+shot inside a box of other cards and `sima-yi` held in fingers at a steep angle,
+both holographic. Corner detection reported success and locked onto the
+surrounding clutter in each.
 
-One caveat on reading these: **the eval is harsher than the app** for
-pre-cropped photos, since it searches the whole image where the app searches only
-the reticle. Whole camera frames (landscape, 1280x720) are cropped exactly as the
-app crops them, so those are a fair test. Synthetic photos score 100% top-1,
-which confirms the machinery is sound and isolates the gap to the domain shift
-between digital art and photographed foil-finished prints.
+One caveat on reading these: **the eval is harsher than the app** for pre-cropped
+photos, since it searches the whole image where the app searches only the
+reticle. Whole camera frames (landscape, 1280x720) are cropped exactly as the app
+crops them, so those are a fair test.
 
-A full `recognize()` costs ~10 ms on a laptop — rectify 5.6 ms, 12 windows
-5.1 ms, match 0.5 ms — well inside the budget of a deliberate capture.
+A full `recognize()` costs ~5.8 ms on a laptop — rectify 5.7 ms, describe 0.4 ms,
+match 0.3 ms. Nearly all of it is now the corner search and warp; matching itself
+is negligible.
 
 ## Escalating
 

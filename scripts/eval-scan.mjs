@@ -78,12 +78,11 @@ import {
   DETECT_WIDTH,
   EDGE_PERCENTILE,
   artWindowRect,
-  artWindowRects,
   detectCardQuad,
   rectifyCard,
 } from '../src/features/scan/pipeline/rectify.ts'
 import { reticleRegion } from '../src/features/scan/model/frame.ts'
-import { REFERENCE_ROWS } from '../src/features/scan/model/references.ts'
+import { BUILT_FROM, REFERENCE_ROWS } from '../src/features/scan/model/references.ts'
 
 const args = process.argv.slice(2)
 const flag = (name, fallback) => {
@@ -246,7 +245,10 @@ async function flattenAll() {
 /** Runs the matcher over a given set of artwork windows. */
 function evaluate(cards, windows) {
   const results = cards.map(({ file, label, card, detected }) => {
-    const rects = windows.map((window) => artWindowRect(card, window))
+    const rects =
+      BUILT_FROM === 'full-card'
+        ? [{ x: 0, y: 0, width: card.width, height: card.height }]
+        : windows.map((window) => artWindowRect(card, window))
     const ranked = matchDescriptor(describeWindows(card, rects), references)
     return {
       file,

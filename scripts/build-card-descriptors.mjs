@@ -8,8 +8,21 @@
  * `src/`, nothing imports it, and `sharp` is a devDependency. The *output* is
  * checked in, so the app never does image work at startup.
  *
- *   npm run descriptors            regenerate the reference module
- *   npm run descriptors -- --dry   print it instead of writing it
+ *   npm run descriptors                regenerate the reference module
+ *   npm run descriptors -- --full-card build from whole-card scans in full-card/
+ *   npm run descriptors -- --dry       print it instead of writing it
+ *
+ * ## Two kinds of reference
+ *
+ * By default this reads the art-only crops in `public/cards/`, which means the
+ * scanner has to guess where the artwork sits inside a photographed card — a
+ * crop that varies per card and is the single largest source of error.
+ *
+ * `--full-card` instead reads scans of whole cards from `full-card/`, named by
+ * card id. The correspondence is then exact: a captured card is compared against
+ * a reference card, whole against whole, with nothing to crop and nothing to
+ * calibrate. It needs a scan per printing, and the modes cannot be mixed — see
+ * `ReferenceMode`.
  *
  * ## Why this imports from src/
  *
@@ -50,7 +63,9 @@ const flag = (name, fallback) => {
   return i === -1 ? fallback : args[i + 1]
 }
 
-const inDir = path.resolve(flag('in', 'public/cards'))
+const fullCard = args.includes('--full-card')
+const mode = fullCard ? 'full-card' : 'artwork'
+const inDir = path.resolve(flag('in', fullCard ? 'full-card' : 'public/cards'))
 const outFile = path.resolve(
   flag('out', 'src/features/scan/model/references.ts'),
 )
@@ -68,6 +83,8 @@ const characters = [...shu, ...wei, ...wu, ...qun]
  * the run ~10x faster as a side effect.
  */
 async function loadArtwork(file) {
+  // No cropping in either mode. An artwork reference is already just the art; a
+  // full-card scan is meant to be compared whole, against a whole captured card.
   const { data, info } = await sharp(file)
     .resize({ width: CARD_WIDTH, fit: 'inside', withoutEnlargement: true })
     .ensureAlpha()
@@ -130,6 +147,8 @@ const module = `/**
  *
  * Characters only — weapons are excluded, see the generating script.
  *
+ * Built from: ${mode === 'full-card' ? 'whole-card scans in full-card/' : 'artwork crops in public/cards/'}.
+ *
  * Deliberately *not* in src/data/: vite.config.ts puts that directory in an
  * eagerly-loaded chunk, and this table is only ever needed by the lazily-routed
  * scanner. Here it rides along with the scan chunk and costs other visits
@@ -138,6 +157,14 @@ const module = `/**
 
 /** [art id, character id, base64 descriptor] */
 export type ReferenceRow = readonly [string, string, string]
+
+/**
+ * What these descriptors describe, which decides how a captured card must be
+ * cropped to be comparable — see \`ReferenceMode\` in pipeline/rectify.ts. The
+ * matcher reads this rather than assuming, because the two modes need opposite
+ * treatment and mixing them fails silently.
+ */
+export const BUILT_FROM = '${mode}' as const
 
 export const REFERENCE_ROWS: readonly ReferenceRow[] = [
 ${body}
@@ -154,9 +181,20 @@ if (dry) {
   )
 }
 
-if (missing.length)
+if (missing.length) {
+  // In full-card mode this is the normal state until every card is scanned, and
+  // it is worth shouting about: a missing reference is a card the scanner simply
+  // cannot recognise, and the modes cannot be mixed to cover the gap.
+  const shown = missing.slice(0, 12).join(', ')
   console.warn(
-    `No artwork for ${missing.length} printing(s): ${missing.join(', ')}. ` +
-      `The scanner cannot match a card it has no reference image for — add ` +
-      `the art to art-source/ and run \`npm run images\`.`,
+    `
+No reference image for ${missing.length} printing(s): ${shown}` +
+      `${missing.length > 12 ? `, ... (+${missing.length - 12} more)` : ''}
+` +
+      (fullCard
+        ? `Add scans to full-card/ named <card-id>.jpg. Until then the scanner ` +
+          `cannot recognise those cards at all — coverage is ` +
+          `${entries.length}/${entries.length + missing.length}.`
+        : `Add the art to art-source/ and run \`npm run images\`.`),
   )
+}
