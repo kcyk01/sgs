@@ -81,7 +81,7 @@ export default function WeaponListPage() {
                         />
                         {hasArt && (
                           <span className="weapon__zoom" aria-hidden="true">
-                            <Icon name="expand" size={11} />
+                            <Icon name="expand" size={13} />
                           </span>
                         )}
                       </button>

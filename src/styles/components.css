@@ -533,7 +533,7 @@
   border: 1px solid var(--c-border);
   border-radius: var(--r-md);
   content-visibility: auto;
-  contain-intrinsic-size: auto 110px;
+  contain-intrinsic-size: auto 180px;
 }
 
 .weapon__art {
@@ -550,14 +550,21 @@
   transform: scale(0.97);
 }
 
-/* Larger than the character list's 52px thumb: this one is being compared
-   against a card held in someone's hand, so the art has to be readable without
-   opening it. Same 5:7 crop. */
+/* Sized to be *matched*, not merely identified: several weapons share a hilt
+   and a colourway, so this has to settle "which one is in their hand" without
+   opening the lightbox. Hence a third of the viewport rather than a fixed thumb
+   — it grows with the phone, and the clamp stops it eating the rules text on a
+   narrow screen or ballooning past the 720px layout cap.
+
+   3:4 rather than the row thumb's 5:7: the scans are ~600x772, so this crops a
+   sliver instead of a band, and anchoring to the top keeps the weapon's own
+   illustration when it does. */
 .weapon__thumb {
   display: block;
-  width: 64px;
-  height: 90px;
+  width: clamp(96px, 30vw, 132px);
+  aspect-ratio: 3 / 4;
   object-fit: cover;
+  object-position: center top;
   border-radius: var(--r-sm);
   background: var(--c-surface-2);
 }
@@ -566,12 +573,12 @@
    label, which would not fit at this size. */
 .weapon__zoom {
   position: absolute;
-  right: 3px;
-  bottom: 3px;
+  right: 4px;
+  bottom: 4px;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--r-sm);
   background: color-mix(in srgb, var(--c-bg) 70%, transparent);
   color: var(--c-text);

@@ -274,6 +274,7 @@ export const qun: Character[] = [
           '2. If it is diamonds-suited, the player who was damaged can draw 2 cards from the deck\n' +
           '3. If it is clubs-suited, the player who attacked must discard 2 cards\n' +
           '4. If it is spades-suited, the player who attacked must flip their character card',
+        tags: ['heal', 'flip']
       },
       {
         name: '[Enforced Ability]',
@@ -316,6 +317,7 @@ export const qun: Character[] = [
           'Once per turn, during your action phase, you can choose to points duel another player.\n' +
           'If you win, then you can use unlimited number of [Attack] on that player, and your [Attack] ignores their Armour Equipment and has no range restrictions.\n' +
           'If you lose, you cannot attack for the rest of your turn',
+        tags: ['points duel']
       },
       {
         name: '[Enforced Ability]',
