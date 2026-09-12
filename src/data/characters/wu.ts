@@ -182,6 +182,9 @@ export const wu: Character[] = [
           'Whenever you are healed, each health point allows you to discard one of these cards from your character card',
       }
     ],
+    variants: [
+      {id: 'zhou-tai-2', label: 'Alternate Art'},
+    ]
   },
   {
     id: 'taishi-ci',

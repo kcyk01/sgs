@@ -129,6 +129,9 @@ export const shu: Character[] = [
         description:
           'The Tool cards that you use have no range restrictions',
       }
+    ],
+    variants: [
+      {id: 'huang-yueying-2', label: 'Alternate Art'},
     ]
   },
   {

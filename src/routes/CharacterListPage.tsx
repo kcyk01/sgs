@@ -12,16 +12,27 @@ import {
   groupCharacters,
   sortCharacters,
 } from '../lib/query'
+import { characterVersions } from '../lib/versions'
 
 export default function CharacterListPage() {
   const { query, setQuery, resetFilters } = useCharacterQuery()
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  // Search, filter, sort and group all run on *characters*; each is only then
+  // expanded into its printings. That order is what keeps an alternate art
+  // sitting immediately after the card it belongs to, however the list is
+  // sorted — which is the only place a player scanning for a picture would
+  // think to look for it.
   const groups = useMemo(() => {
     const filtered = filterCharacters(characters, query)
-    return groupCharacters(sortCharacters(filtered, query.sort), query.group)
+    return groupCharacters(
+      sortCharacters(filtered, query.sort),
+      query.group,
+    ).map((group) => ({ ...group, items: group.items.flatMap(characterVersions) }))
   }, [query])
 
+  // Counts printings, not characters, so the group headers and the filter
+  // sheet's "Show N cards" both describe what is actually on screen.
   const total = useMemo(
     () => groups.reduce((n, g) => n + g.items.length, 0),
     [groups],
@@ -57,8 +68,8 @@ export default function CharacterListPage() {
                 <span>{group.items.length}</span>
               </h2>
               <div className="grid">
-                {group.items.map((c) => (
-                  <CharacterTile key={c.id} character={c} />
+                {group.items.map((v) => (
+                  <CharacterTile key={v.id} version={v} />
                 ))}
               </div>
             </section>

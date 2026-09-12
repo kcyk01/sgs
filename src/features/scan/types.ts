@@ -1,7 +1,7 @@
 /**
- * Contract between the camera UI and the (future) trained card-recognition model.
- * The UI is written against this interface only, so dropping in a real model is
- * a single-file change — see README.md in this folder.
+ * Contract between the camera UI and card recognition. The UI is written against
+ * this interface only, so swapping the descriptor matcher for a learned model is
+ * a change to `recognizer.ts` and nothing else — see README.md in this folder.
  */
 
 export interface CardMatch {
@@ -24,7 +24,12 @@ export interface CardRecognizer {
 }
 
 export type RecognizerStatus =
-  /** No model is bundled yet — the UI shows an explanatory placeholder. */
+  /**
+   * `loadRecognizer` returned nothing, so the camera works but cards are not
+   * identified. Unreachable with the built-in matcher, which needs no weights
+   * and no runtime — kept because a future model-backed recognizer could
+   * legitimately decline to load on an unsupported device.
+   */
   | 'unavailable'
   | 'loading'
   | 'ready'

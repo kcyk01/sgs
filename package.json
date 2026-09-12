@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "images": "node scripts/build-card-images.mjs",
     "colors": "node scripts/build-card-colors.mjs",
+    "descriptors": "node scripts/build-card-descriptors.mjs",
+    "scan:eval": "node scripts/eval-scan.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

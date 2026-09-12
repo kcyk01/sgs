@@ -270,6 +270,26 @@
   background: var(--c-surface-2);
 }
 
+/* Marks a tile as an alternate printing. Opposite corner to the pips, and the
+   same pill treatment, so the two never collide or read as one control. */
+.card-tile__label {
+  position: absolute;
+  right: var(--sp-1);
+  top: var(--sp-1);
+  max-width: calc(100% - var(--sp-2) * 2);
+  padding: 3px var(--sp-1);
+  border-radius: var(--r-sm);
+  background: rgb(0 0 0 / 0.62);
+  backdrop-filter: blur(4px);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Pips ride over the art, so they cost no height in the caption. A gradient
    scrim isn't enough on busy art — this is an opaque-enough pill sized to the
    pips, so the count stays countable whatever is behind it. */

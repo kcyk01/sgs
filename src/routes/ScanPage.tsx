@@ -11,9 +11,9 @@ import type { CardMatch, CardRecognizer, RecognizerStatus } from '../features/sc
 import { useCamera } from '../features/scan/useCamera'
 
 /**
- * Camera scanner. The capture pipeline is complete and the recognition step is
- * behind the `CardRecognizer` interface, so this page needs no changes when the
- * trained model lands — see src/features/scan/README.md.
+ * Camera scanner. Recognition sits behind the `CardRecognizer` interface and is
+ * loaded lazily, so this page is unaffected by how a card is actually identified
+ * — see src/features/scan/README.md.
  */
 export default function ScanPage() {
   const { videoRef, state, error, start, stop } = useCamera()
@@ -114,12 +114,12 @@ export default function ScanPage() {
 
           {status === 'unavailable' && (
             <p className="muted" style={{ fontSize: '0.875rem' }}>
-              Recognition model not installed yet — the camera preview works, but
-              cards are not identified. Until then, use{' '}
+              Card recognition is unavailable on this device — the camera preview
+              works, but cards are not identified. Use{' '}
               <Link to="/" style={{ color: 'var(--c-accent)' }}>
                 search
-              </Link>
-              .
+              </Link>{' '}
+              instead.
             </p>
           )}
 

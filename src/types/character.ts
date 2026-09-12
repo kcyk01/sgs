@@ -65,8 +65,11 @@ export interface Character {
   /** Long-form lore / designer notes. Optional. */
   flavor?: string
   /**
-   * Reserved for the future camera-recognition model: the class label this card
-   * maps to in the trained model's output. See src/features/scan/README.md.
+   * The class label this card maps to in a trained model's output.
+   *
+   * Unused by the current scanner, which is retrieval over precomputed artwork
+   * descriptors keyed on `id` and needs no separate label space. Kept for a
+   * recognizer that does — see src/features/scan/README.md.
    */
   modelLabel?: string
   /**

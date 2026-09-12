@@ -1,25 +1,23 @@
 import type { CardRecognizer } from './types'
 
 /**
- * Returns the card recognizer, or `null` when no model is bundled yet.
+ * Returns the card recognizer, or `null` if it cannot be loaded.
  *
- * Keep this function as the ONLY place that knows how the model is loaded. It is
- * called from a lazily-routed page and uses a dynamic `import()`, so neither the
- * runtime (TF.js / ONNX Runtime Web) nor the weights are in the initial bundle —
+ * Keep this function as the ONLY place that knows how recognition is loaded. It
+ * is called from a lazily-routed page and uses a dynamic `import()`, so neither
+ * the matcher nor its reference descriptors are in the initial bundle —
  * important, since most visits never open the scanner.
  *
- * To wire up a real model:
- *   1. Add the runtime dep, e.g. `npm i @tensorflow/tfjs`.
- *   2. Create `./model/tfjsRecognizer.ts` exporting `createRecognizer(): CardRecognizer`.
- *   3. Put weights in `public/model/` (they must be served, not bundled).
- *   4. Replace the `return null` below with the commented-out import.
+ * The current recognizer needs no model weights and no inference runtime: it
+ * matches a rectified crop of the card's artwork against ~21 kB of precomputed
+ * descriptors. See ./model/localRecognizer.ts for why, and README.md for how to
+ * put a learned embedding behind this same call if the eval numbers ask for one.
  */
 export async function loadRecognizer(): Promise<CardRecognizer | null> {
-  // const { createRecognizer } = await import('./model/tfjsRecognizer')
-  // const recognizer = createRecognizer()
-  // await recognizer.load()
-  // return recognizer
-  return null
+  const { createRecognizer } = await import('./model/localRecognizer')
+  const recognizer = createRecognizer()
+  await recognizer.load()
+  return recognizer
 }
 
 /** Below this confidence, a match is treated as "keep looking". */

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { CardArtPager } from '../components/CardArtPager'
 import { CardLightbox } from '../components/CardLightbox'
@@ -20,14 +20,18 @@ export default function CharacterDetailPage() {
     () => (character ? characterVersions(character) : []),
     [character],
   )
+  // The shown printing lives in the URL as `?v=<version id>`, so the grid can
+  // link straight to the alternate art a player is holding, and so reloading or
+  // sharing that link lands on the same picture.
+  //
   // Keyed by version *id* rather than index, for the same reason the zoom state
   // is: React Router reuses this component across /c/:id changes, and an id
   // belonging to the previous card falls back to 0 on its own rather than
   // stranding the reader on "version 3" of a card that has one.
-  const [activeVersionId, setActiveVersionId] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
   const activeIndex = Math.max(
     0,
-    versions.findIndex((v) => v.id === activeVersionId),
+    versions.findIndex((v) => v.id === searchParams.get('v')),
   )
   const version = versions[activeIndex]
 
@@ -82,7 +86,13 @@ export default function CharacterDetailPage() {
         <CardArtPager
           versions={versions}
           index={activeIndex}
-          onIndexChange={(i) => setActiveVersionId(versions[i].id)}
+          // Replaces rather than pushes: back should return to the list, not
+          // step backwards through printings the reader swiped past.
+          onIndexChange={(i) =>
+            setSearchParams(i === 0 ? {} : { v: versions[i].id }, {
+              replace: true,
+            })
+          }
           onZoom={() => setZoomedId(version.id)}
           hasArt={hasArt}
           onArtMissing={() =>

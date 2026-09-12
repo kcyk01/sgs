@@ -61,7 +61,8 @@ export const qun: Character[] = [
       }
     ],
     variants: [
-      {id: 'diao-chan-2', label: 'Alternate Art'}
+      {id: 'diao-chan-2', label: 'Alternate Art'},
+      {id: 'diao-chan-3', label: 'Alternate Art'}
     ]
   },
   {
