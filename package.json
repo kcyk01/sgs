@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "images": "node scripts/build-card-images.mjs",
+    "colors": "node scripts/build-card-colors.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

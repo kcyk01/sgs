@@ -3,7 +3,9 @@ import { useSearchParams } from 'react-router-dom'
 import type { CharacterQuery, GroupKey, SortKey } from '../lib/query'
 import { emptyQuery } from '../lib/query'
 
-const SORTS: SortKey[] = ['name', 'health-desc', 'health-asc']
+// An unrecognised value falls back to the default, so links shared before a
+// sort was renamed still open — just not on the sort they were shared with.
+const SORTS: SortKey[] = ['name', 'color']
 const GROUPS: GroupKey[] = ['none', 'kingdom', 'health']
 
 function parseList(value: string | null): string[] {
@@ -40,6 +42,7 @@ export function useCharacterQuery(): {
       kingdoms: parseList(params.get('kingdom')),
       tags: parseList(params.get('tag')),
       healths: parseNumberList(params.get('hp')),
+      abilityCounts: parseNumberList(params.get('abilities')),
       sort: sort && SORTS.includes(sort) ? sort : emptyQuery.sort,
       group: group && GROUPS.includes(group) ? group : emptyQuery.group,
     }
@@ -53,6 +56,8 @@ export function useCharacterQuery(): {
       if (next.kingdoms.length) sp.set('kingdom', next.kingdoms.join(','))
       if (next.tags.length) sp.set('tag', next.tags.join(','))
       if (next.healths.length) sp.set('hp', next.healths.join(','))
+      if (next.abilityCounts.length)
+        sp.set('abilities', next.abilityCounts.join(','))
       if (next.sort !== emptyQuery.sort) sp.set('sort', next.sort)
       if (next.group !== emptyQuery.group) sp.set('group', next.group)
       // replace: typing in the search box should not fill up the history stack.

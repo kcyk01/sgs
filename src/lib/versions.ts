@@ -35,6 +35,21 @@ export function allAbilities(character: Character): Ability[] {
 }
 
 /**
+ * How many abilities each printing of a character has, deduplicated.
+ *
+ * Per *version*, not summed across them: a character with a 2-ability base and
+ * a 3-ability variant returns [2, 3], because that's two cards you could hold,
+ * one with two abilities and one with three. Summing to 5 would describe a card
+ * that doesn't exist. A variant that doesn't restate `abilities` inherits the
+ * base's, so it contributes the same count rather than zero.
+ */
+export function abilityCounts(character: Character): number[] {
+  return [
+    ...new Set(characterVersions(character).map((v) => v.abilities.length)),
+  ].sort((a, b) => a - b)
+}
+
+/**
  * Flattens a character into its ordered list of versions: the base card first,
  * then each variant merged over it. Always returns at least one entry, so the
  * detail page can render versions[n] without a special case for the ~99% of

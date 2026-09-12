@@ -1,5 +1,5 @@
 import type { Character } from '../../types/character'
-import { allAbilities, characterVersions } from '../../lib/versions'
+import { abilityCounts, allAbilities, characterVersions } from '../../lib/versions'
 import { qun } from './qun'
 import { shu } from './shu'
 import { wei } from './wei'
@@ -43,6 +43,16 @@ export const allAbilityTags: string[] = [
  */
 export const healthValues: number[] = [
   ...new Set(characters.map((c) => c.health)),
+].sort((a, b) => a - b)
+
+/**
+ * The distinct ability counts present in the data, ascending. Same reasoning as
+ * `healthValues`: offer only counts that can actually match something. Counted
+ * per printing, so a character's variants can contribute counts of their own —
+ * see `abilityCounts`.
+ */
+export const abilityCountValues: number[] = [
+  ...new Set(characters.flatMap((c) => abilityCounts(c))),
 ].sort((a, b) => a - b)
 
 if (import.meta.env.DEV) {

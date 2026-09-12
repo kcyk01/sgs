@@ -1,8 +1,9 @@
 import type { Character } from '../types/character'
 import { kingdomName } from '../data/kingdoms'
-import { allAbilities } from './versions'
+import { compareCardColors } from './colors'
+import { abilityCounts, allAbilities } from './versions'
 
-export type SortKey = 'name' | 'health-desc' | 'health-asc'
+export type SortKey = 'name' | 'color'
 export type GroupKey = 'none' | 'kingdom' | 'health'
 
 /** Everything the list page needs to derive its contents. Serialized into the URL. */
@@ -12,6 +13,11 @@ export interface CharacterQuery {
   tags: string[]
   /** Selected health values. Empty means "any"; otherwise OR semantics. */
   healths: number[]
+  /**
+   * Selected ability counts — "show me the one-ability cards". Empty means
+   * "any"; otherwise OR semantics, like the rest.
+   */
+  abilityCounts: number[]
   sort: SortKey
   group: GroupKey
 }
@@ -21,8 +27,9 @@ export const emptyQuery: CharacterQuery = {
   kingdoms: [],
   tags: [],
   healths: [],
+  abilityCounts: [],
   sort: 'name',
-  group: 'none',
+  group: 'kingdom',
 }
 
 /** Lowercase + strip diacritics so "Lu Bu" matches "Lü Bu". */
@@ -64,10 +71,15 @@ export function filterCharacters(
   source: Character[],
   query: CharacterQuery,
 ): Character[] {
-  const { q, kingdoms, tags, healths } = query
+  const { q, kingdoms, tags, healths, abilityCounts: counts } = query
   return source.filter((c) => {
     if (kingdoms.length && !kingdoms.includes(c.kingdom)) return false
     if (healths.length && !healths.includes(c.health)) return false
+    // A character qualifies if *any* of its printings has a selected count —
+    // the same "a variant is a real card too" rule the tag filter and the
+    // search box already follow.
+    if (counts.length && !abilityCounts(c).some((n) => counts.includes(n)))
+      return false
     if (tags.length) {
       const own = new Set(allAbilities(c).flatMap((a) => a.tags ?? []))
       // OR semantics: match any selected tag.
@@ -81,10 +93,11 @@ export function sortCharacters(source: Character[], sort: SortKey): Character[] 
   const byName = (a: Character, b: Character) => a.name.localeCompare(b.name)
   const copy = [...source]
   switch (sort) {
-    case 'health-desc':
-      return copy.sort((a, b) => b.health - a.health || byName(a, b))
-    case 'health-asc':
-      return copy.sort((a, b) => a.health - b.health || byName(a, b))
+    case 'color':
+      // Always the base card's art, even for a character whose variants have
+      // wildly different colouring — the list shows version 0, so sorting on
+      // anything else would order the grid by images it isn't displaying.
+      return copy.sort((a, b) => compareCardColors(a.id, b.id) || byName(a, b))
     case 'name':
     default:
       return copy.sort(byName)
@@ -131,6 +144,7 @@ export function activeFilterCount(query: CharacterQuery): number {
   return (
     query.kingdoms.length +
     query.tags.length +
-    query.healths.length
+    query.healths.length +
+    query.abilityCounts.length
   )
 }

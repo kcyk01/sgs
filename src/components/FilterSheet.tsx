@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Icon } from './Icon'
-import { allAbilityTags, healthValues } from '../data/characters'
+import { abilityCountValues, allAbilityTags, healthValues } from '../data/characters'
 import { kingdoms } from '../data/kingdoms'
 import { toggleInList } from '../hooks/useCharacterQuery'
 import type { CharacterQuery, GroupKey, SortKey } from '../lib/query'
@@ -8,8 +8,7 @@ import { activeFilterCount } from '../lib/query'
 
 const sortOptions: { key: SortKey; label: string }[] = [
   { key: 'name', label: 'Name' },
-  { key: 'health-desc', label: 'HP high' },
-  { key: 'health-asc', label: 'HP low' },
+  { key: 'color', label: 'Colour' },
 ]
 
 const groupOptions: { key: GroupKey; label: string }[] = [
@@ -116,6 +115,34 @@ export function FilterSheet({
                   }
                 >
                   {hp}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="sheet__section">
+          {/* "Ability count", not "Abilities" — the tag filter below is also
+              about abilities, and two sections a thumb-width apart both
+              labelled "Abilities" would be a coin toss. */}
+          <span className="sheet__label">Ability count</span>
+          <div className="chip-row">
+            {abilityCountValues.map((n) => {
+              const selected = query.abilityCounts.includes(n)
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  // Two rows of bare numeric chips now sit a thumb-width apart;
+                  // "2, pressed" on its own doesn't say which row it came from.
+                  aria-label={`${n} ${n === 1 ? 'ability' : 'abilities'}`}
+                  aria-pressed={selected}
+                  className={`chip chip--button${selected ? ' chip--selected' : ''}`}
+                  onClick={() =>
+                    setQuery({ abilityCounts: toggleInList(query.abilityCounts, n) })
+                  }
+                >
+                  {n}
                 </button>
               )
             })}
