@@ -24,7 +24,7 @@ captured still           ScanPage.tsx          one frame, at camera resolution
   -> reticle crop          model/frame.ts        the part the user aimed at
   -> corner detection      pipeline/rectify.ts   find the card's four corners
   -> perspective warp      pipeline/homography.ts flatten to a canonical card
-  -> 16 artwork crops      pipeline/rectify.ts   candidate regions (see below)
+  -> 12 artwork crops      pipeline/rectify.ts   candidate regions (see below)
   -> 280-byte descriptors  pipeline/descriptor.ts 16x16 luma grid + hue histogram
   -> nearest neighbour     pipeline/match.ts     ~75 references, best crop each
   -> ranked shortlist      ScanPage.tsx          lead match, then runners-up
@@ -50,19 +50,33 @@ of a keypoint search, which is the entire reason this needs no OpenCV.js.
 
 The single most important thing to know when changing this: **the reference
 images are artwork crops, not whole cards.** No frame, no name, no health, no
-rules box. And they were cropped by hand from assorted sources, so each sits at a
-slightly different scale and offset within its card — there is no one correct
-window to cut.
+rules box. The camera sees a whole card, so after the warp the artwork has to be
+cut back out of it before the two are comparable. That is `ART_WINDOWS` in
+`pipeline/rectify.ts` — 12 candidate crops, each reference scored at whichever
+one suits it best.
 
-So `ART_WINDOWS` in `pipeline/rectify.ts` holds 16 candidate crops, and each
-reference is scored at whichever one suits it best. Searching that nuisance
-parameter rather than guessing it took top-1 from **43% to 71%** on real photos:
-by far the largest single gain in the pipeline, and the reason the cheap
-descriptor was worth keeping rather than replacing.
+The trims are **measured, not guessed**. Searching every crop of every test photo
+against its own correct reference put the ideal window at a median of
+`left 0.16, right 0.08, top 0.08, bottom 0.08`, and those land on real things:
+the vertical **name banner** down the left, the **health pips** across the top,
+the **rules box** across the bottom.
 
-Re-measure with `npm run scan:eval -- --sweep`, which reports each window alone
-and all of them together. If the reference crops are ever regenerated to a
-consistent frame, that gap should close and the list can collapse to one entry.
+Two consequences that are easy to get wrong:
+
+- **The window must be asymmetric.** The left trim is about twice the right,
+  because the furniture is on the left. An earlier symmetric grid capped at 0.06
+  a side could not express that, so every photo was matching on artwork
+  contaminated with banner and pips — which is why recognition worked for cards
+  with distinctive art and failed for the rest. Fixing it moved top-1 from 68.8%
+  to 81.3%.
+- **More windows is not better.** Each window is another chance for a *wrong*
+  card to find a flattering crop, so the search has a real optimum, not just a
+  cost ceiling. 12 windows scored 81.3%; an 18-window grid that merely added a
+  deeper bottom trim dropped to 75.0%. Do not widen the grid without re-running
+  the eval.
+
+Re-measure with `npm run scan:eval -- --sweep`, which scores each window alone
+and all of them together.
 
 ## Measuring it
 
@@ -80,35 +94,33 @@ verdict:
 
 ### Where it currently stands
 
-On 14 real card photos (`npm run scan:eval -- --in test-images`):
+On 16 real card photos (`npm run scan:eval -- --in test-images`):
 
 ```
-top-1 recall     78.6%
-top-5 recall     85.7%
+top-1 recall     81.3%
+top-5 recall     87.5%
 card detected   100.0%
 ```
 
-Treat single figures here with suspicion: at n=14 one photo is 7.1%, so top-5
+Treat single figures here with suspicion: at n=16 one photo is 6.25%, so top-5
 moves a whole band when one card shifts by one rank. Growing the photo set is the
 cheapest way to make this number mean something.
 
-Every failure is a photo where the *card* was not cleanly isolated: one shot
-inside a box of other cards, one held in fingers at a steep angle, both with
-holographic foil washing out the artwork. Corner detection reported success and
-locked onto the surrounding clutter.
+The three remaining misses are `cao-cao` (shot inside a box of other cards,
+holographic foil), `sima-yi` (held in fingers at a steep angle, foil) and
+`zhang-fei` (#3 — the one card the re-centred window made worse). The first two
+are capture problems: corner detection reported success and locked onto the
+surrounding clutter.
 
-One caveat on reading these: **the eval is harsher than the app.** It searches
-the whole photo, whereas the app searches only the reticle the user aimed
-through, which excludes most of the clutter that caused these failures. So real
-accuracy should sit above these figures — but that is an argument for measuring
-in the app, not for assuming it. Synthetic photos (reference art composited into
-a card frame, tilted, dimmed, blurred) score 100% top-1, which confirms the
-machinery is sound and isolates the gap to the domain shift between digital art
-and photographed foil-finished prints.
+One caveat on reading these: **the eval is harsher than the app** for
+pre-cropped photos, since it searches the whole image where the app searches only
+the reticle. Whole camera frames (landscape, 1280x720) are cropped exactly as the
+app crops them, so those are a fair test. Synthetic photos score 100% top-1,
+which confirms the machinery is sound and isolates the gap to the domain shift
+between digital art and photographed foil-finished prints.
 
-A full `recognize()` costs ~13 ms on a laptop — rectify 6.4 ms, 16 windows
-6.2 ms, match 0.5 ms — well inside the budget of a deliberate capture, which is
-what paid for `CAPTURE_WIDTH` going from 320 to 480.
+A full `recognize()` costs ~10 ms on a laptop — rectify 5.6 ms, 12 windows
+5.1 ms, match 0.5 ms — well inside the budget of a deliberate capture.
 
 ## Escalating
 

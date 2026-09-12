@@ -1008,10 +1008,20 @@
   object-fit: cover;
 }
 
-/* Card-shaped alignment guide overlaid on the camera feed. */
+/* Card-shaped alignment guide overlaid on the camera feed.
+   The shape is the whole point: people line a card up against the edges they are
+   shown, so the guide has to be a card's proportions or it teaches them to frame
+   it wrong. Only the height is authored — `aspect-ratio` derives the width from
+   the real 63x88mm card. `RETICLE_HEIGHT` in model/frame.ts mirrors the 76% and
+   derives its width by the same rule, so the drawn guide and the searched region
+   stay the same shape. */
 .scan__reticle {
   position: absolute;
-  inset: 12% 18%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 76%;
+  aspect-ratio: 63 / 88;
   border: 2px dashed color-mix(in srgb, var(--c-accent) 70%, transparent);
   border-radius: var(--r-md);
   pointer-events: none;

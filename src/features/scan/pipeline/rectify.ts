@@ -29,70 +29,106 @@ export const CARD_ASPECT = 63 / 88
 export const CARD_WIDTH = 200
 export const CARD_HEIGHT = Math.round(CARD_WIDTH / CARD_ASPECT)
 
-/** A candidate artwork crop, as fractions of the flattened card. */
+/**
+ * A candidate artwork crop: how much to trim off each edge of the flattened
+ * card, as a fraction of its width or height.
+ *
+ * Per-edge rather than a single symmetric inset, because the card's furniture is
+ * not symmetric — see `ART_WINDOWS`.
+ */
 export interface ArtWindow {
-  /** Inset from *each* side, so the crop stays horizontally centred. */
-  inset: number
+  /** Trimmed from the left edge, where the name banner runs. */
+  left: number
+  /** Trimmed from the right edge — just the border. */
+  right: number
+  /** Trimmed from the top, where the health pips sit. */
   top: number
-  height: number
+  /** Trimmed from the bottom, where the rules box sits. */
+  bottom: number
 }
 
 /**
  * The crops of a flattened card that get compared against the references.
  *
- * This is the subtlest part of the whole feature. The references in
- * `public/cards/` are *artwork crops* — no frame, no name, no health, no rules
- * box — so a whole photographed card cannot be compared against them directly.
- * Worse, those crops were made by hand from assorted sources, so each one sits at
- * a slightly different scale and offset within its card. There is no single
- * correct window to cut.
+ * This is the subtlest part of the whole feature, and the easiest to get wrong.
+ * The references in `public/cards/` are *artwork crops* — no frame, no name, no
+ * health, no rules box — while the camera sees a whole card. So the card is
+ * warped flat, and then the artwork has to be cut back out of it before the two
+ * are comparable.
  *
- * So the nuisance parameter gets searched rather than guessed, exactly as
- * perspective does one step earlier: describe the card at every window below and
- * let each reference match against its best one. On a real photo set this took
- * top-1 from 43% to 71% — by far the largest single gain in the pipeline, and
- * the reason the descriptor was worth keeping rather than replacing.
+ * ## The numbers are measured, not guessed
  *
- * The grid is deliberately small. Measured on real photos, 16 windows scored
- * identically to 33 and to 45, so the rest was pure per-frame cost. Re-measure
- * with `npm run scan:eval -- --sweep` if the reference crops are ever
- * regenerated to a consistent frame — at which point most of this can collapse
- * back to a single window.
+ * Searching every crop of every test photo against its own correct reference put
+ * the ideal window at a median of `left 0.16, right 0.08, top 0.08, bottom 0.08`.
+ * Those correspond to real things on the card: the vertical **name banner** down
+ * the left, the **health pips** across the top, and the **rules box** across the
+ * bottom. The left trim is roughly twice the right — the furniture is asymmetric,
+ * so the window must be too. An earlier symmetric grid capped at 0.06 a side
+ * could not express that, and left every single photo matching on artwork
+ * contaminated with banner and pips. Correcting it moved top-1 from 68.8% to
+ * 81.3% on the test set.
+ *
+ * ## More windows is not better
+ *
+ * Every window is another chance for a *wrong* card to find a flattering crop,
+ * so the search has a genuine optimum rather than just a cost ceiling. Measured:
+ * 12 windows scored 81.3%, and an 18-window grid that merely added a deeper
+ * bottom trim dropped to 75.0%. Do not widen this grid without re-running
+ * `npm run scan:eval` — the intuition that more coverage helps is wrong here.
+ *
+ * Re-measure with `npm run scan:eval -- --sweep`, which scores each window alone
+ * and all of them together.
  */
-export const ART_WINDOWS: readonly ArtWindow[] = [0, 0.06].flatMap((inset) =>
-  [0, 0.04].flatMap((top) =>
-    [0.72, 0.8, 0.88, 0.96].map((height) => ({ inset, top, height })),
+export const ART_WINDOWS: readonly ArtWindow[] = [0.12, 0.16, 0.2].flatMap((left) =>
+  [0.08, 0.12].flatMap((top) =>
+    [0, 0.08].map((bottom) => ({ left, right: 0.06, top, bottom })),
   ),
 )
 
+/** One candidate window as a pixel rectangle within a given flattened card. */
+export function artWindowRect(card: Raster, window: ArtWindow): Rect {
+  return {
+    x: window.left * card.width,
+    y: window.top * card.height,
+    width: Math.max(1, (1 - window.left - window.right) * card.width),
+    height: Math.max(1, (1 - window.top - window.bottom) * card.height),
+  }
+}
+
 /** The candidate windows as pixel rectangles within a given flattened card. */
 export function artWindowRects(card: Raster): Rect[] {
-  return ART_WINDOWS.map(({ inset, top, height }) => ({
-    x: inset * card.width,
-    y: top * card.height,
-    width: (1 - 2 * inset) * card.width,
-    height: Math.min(height, 1 - top) * card.height,
-  }))
+  return ART_WINDOWS.map((window) => artWindowRect(card, window))
 }
 
 /**
  * Width the search region is captured at before any of this runs.
  *
- * Measured, not guessed. At 320 the test photos scored 78.6% top-5; at 480 they
- * scored 85.7%, and 640 and 800 scored the same as 480 — so this is where the
- * curve flattens. The extra pixels help the corner search find clean edges more
- * than they help the descriptor, which averages most of them away regardless.
+ * Measured: 320, 400 and 480 all score 81.3% top-1 on the test photos, while 640
+ * and 800 drop to 75.0%. Resolution buys nothing here — the descriptor averages
+ * the detail away regardless — and past ~480 it starts to hurt, because the
+ * corner detector's edge threshold is a percentile and finer detail dilutes the
+ * card's own edges with texture from the print and the background.
  *
- * Affordable only because the scanner analyses one still on demand. The old
- * 4 fps live loop could not have paid for it.
+ * 480 sits at the top of the flat band, which leaves the corner search the most
+ * to work with at no measured cost. 320 would be ~2x cheaper for the same
+ * accuracy if the frame budget ever matters.
+ *
+ * An earlier version of this comment claimed 480 beat 320 outright. That was
+ * measured against the old symmetric `ART_WINDOWS`, and stopped being true once
+ * those were corrected — a reminder to re-measure constants when the thing they
+ * were tuned against changes.
  */
 export const CAPTURE_WIDTH = 480
 
-/** Working width for the corner search. Enough edge detail, ~16k pixels of work. */
-const DETECT_WIDTH = 128
+/**
+ * Working width for the corner search. Enough edge detail, ~16k pixels of work.
+ * Exported so `npm run scan:eval -- --explain` can report the real threshold
+ * rather than a copy of it that could drift.
+ */
+export const DETECT_WIDTH = 128
 
 /** Gradient magnitudes above this percentile are treated as card edges. */
-const EDGE_PERCENTILE = 0.88
+export const EDGE_PERCENTILE = 0.88
 
 /** Below this many edge pixels the frame is blurred, dark, or empty. */
 const MIN_EDGE_POINTS = 120

@@ -1,5 +1,5 @@
 import type { Raster, Rect } from '../pipeline/image.ts'
-import { CAPTURE_WIDTH } from '../pipeline/rectify.ts'
+import { CAPTURE_WIDTH, CARD_ASPECT } from '../pipeline/rectify.ts'
 
 /**
  * The browser half of the scanner: turning a live `<video>` into the plain pixel
@@ -15,24 +15,42 @@ import { CAPTURE_WIDTH } from '../pipeline/rectify.ts'
  * Geometry of the alignment reticle, mirroring `.scan__viewport` and
  * `.scan__reticle` in styles/components.css.
  *
- * These numbers are duplicated from CSS and must be changed in both places
- * together. The alternative — measuring the live elements with
- * `getBoundingClientRect` — reads layout during capture and still has to undo
- * `object-fit: cover` by hand, so it trades a comment for a reflow without
- * removing the coupling.
+ * `VIEWPORT_ASPECT` and `RETICLE_HEIGHT` are authored in both places and must be
+ * changed in both. Everything else is *derived* from them and from
+ * `CARD_ASPECT` — by the same rule on each side — so the guide drawn on screen
+ * and the region searched for a card cannot drift into different shapes.
+ *
+ * The alternative — measuring the live elements with `getBoundingClientRect` —
+ * reads layout during capture and still has to undo `object-fit: cover` by hand,
+ * so it trades a comment for a reflow without removing the coupling.
  */
 const VIEWPORT_ASPECT = 3 / 4
-const RETICLE_INSET_X = 0.18
-const RETICLE_INSET_Y = 0.12
+
+/** Reticle height as a fraction of the viewport. The `height: 76%` in the CSS. */
+const RETICLE_HEIGHT = 0.76
+
+const RETICLE_INSET_Y = (1 - RETICLE_HEIGHT) / 2
+
+/**
+ * Horizontal inset, derived from the card's real proportions rather than picked.
+ *
+ * The guide is card-shaped on purpose. People line a card up against the edges
+ * they are shown, so a guide that is not a card's shape teaches them to frame it
+ * wrong — and the previous fixed 18% inset made a guide of aspect 0.63 against a
+ * card's 0.716, narrow enough that a correctly-followed guide pushed the card's
+ * long edges roughly 4% of the frame outside it on each side.
+ */
+const RETICLE_INSET_X = (1 - (RETICLE_HEIGHT * CARD_ASPECT) / VIEWPORT_ASPECT) / 2
 
 /**
  * Extra margin around the reticle included in the search region.
  *
- * The corner detector needs to *see* the card's edges, and a user who aligns
- * their card generously will push those edges just outside the guide. Searching a
- * slightly larger area than the one drawn on screen means the common,
- * well-intentioned framing error still detects, instead of clipping the card and
- * falling back to an unrectified crop.
+ * The corner detector needs to *see* the card's edges: a card filling the guide
+ * exactly would have its edges land on the crop boundary, where there is no
+ * background to find a gradient against. This is pure slack for imperfect
+ * alignment now that the guide is card-shaped — it used to be silently
+ * compensating for the shape mismatch as well, which is most of what it was
+ * spent on.
  */
 const SEARCH_MARGIN = 0.06
 
