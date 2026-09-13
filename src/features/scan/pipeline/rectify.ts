@@ -1,4 +1,4 @@
-import { resampleGray, sobelMagnitude, toGray } from './image.ts'
+import { grayToRaster, resampleGray, sobelMagnitude, toGray } from './image.ts'
 import type { Quad, Raster, Rect } from './image.ts'
 import { warpQuad } from './homography.ts'
 
@@ -167,8 +167,14 @@ export const DETECT_WIDTH = 128
 /** Gradient magnitudes above this percentile are treated as card edges. */
 export const EDGE_PERCENTILE = 0.88
 
-/** Below this many edge pixels the frame is blurred, dark, or empty. */
-const MIN_EDGE_POINTS = 120
+/**
+ * Below this many edge pixels the frame is blurred, dark, or empty.
+ *
+ * Exported for the same reason as `EDGE_PERCENTILE`: Debug Mode reports the
+ * count against the bar it was actually held to, rather than against a copy of
+ * the number that could drift from this one.
+ */
+export const MIN_EDGE_POINTS = 120
 
 /**
  * Fraction of extreme points discarded at each corner.
@@ -188,6 +194,38 @@ const MIN_DETECTED_ASPECT = 0.45
 const MAX_DETECTED_ASPECT = 1.05
 
 /**
+ * The corner search's intermediates, at the resolution it actually runs at.
+ *
+ * Built only when asked for — three RGBA allocations that nothing outside Debug
+ * Mode reads. Everything in here is made from the very buffers the detector
+ * thresholds and sorts, rather than recomputed alongside them: a "show roughly
+ * what it did" path is free to disagree with the detector at precisely the
+ * moment the detector is wrong, which is the only moment any of this is worth
+ * looking at.
+ */
+export interface QuadTrace {
+  /** Grayscale at `DETECT_WIDTH` — what the Sobel saw, not what the camera did. */
+  gray: Raster
+  /** Sobel magnitude, scaled so the frame's strongest gradient is white. */
+  edges: Raster
+  /**
+   * The point cloud the corners are extremes of: every above-threshold pixel lit
+   * over a dimmed copy of `gray`.
+   *
+   * The most useful of the three, because the corner search has no opinion about
+   * *which* points it is handed — it takes the extremes of whatever cleared the
+   * percentile. A quad that traces the background is almost always this image
+   * showing edge points on a table seam or a sleeve, not the corner maths going
+   * wrong.
+   */
+  points: Raster
+  /** The absolute magnitude `EDGE_PERCENTILE` resolved to in this frame. */
+  threshold: number
+  /** How many pixels cleared it. Under `MIN_EDGE_POINTS` the detector gives up. */
+  pointCount: number
+}
+
+/**
  * Locates the card's corners within `region`, in `region`-local coordinates.
  *
  * The method: threshold the gradient image to a cloud of edge pixels, then take
@@ -197,7 +235,10 @@ const MAX_DETECTED_ASPECT = 1.05
  * cannot do is reject a cluttered background, which is what the plausibility
  * gates below and the reticle in front of the user are both for.
  */
-export function detectCardQuad(region: Raster): Quad | null {
+export function detectCardQuad(
+  region: Raster,
+  onTrace?: (trace: QuadTrace) => void,
+): Quad | null {
   const scale = region.width / DETECT_WIDTH
   const w = DETECT_WIDTH
   const h = Math.max(1, Math.round(region.height / scale))
@@ -220,6 +261,23 @@ export function detectCardQuad(region: Raster): Quad | null {
         xs.push(x)
         ys.push(y)
       }
+
+  if (onTrace) {
+    // Emitted here rather than after the gates, so a frame that fails one is
+    // still explicable: the interesting question about a rejected detection is
+    // what the detector was looking at, and by the time `null` is returned that
+    // is gone. The one failure with nothing to show is the `threshold > 0` exit
+    // above — a frame with no gradient anywhere is three black rectangles.
+    const lit = Float32Array.from(gray, (v) => v * 0.35)
+    for (let i = 0; i < xs.length; i++) lit[ys[i] * w + xs[i]] = 255
+    onTrace({
+      gray: grayToRaster(gray, w, h),
+      edges: grayToRaster(edges, w, h, sorted[sorted.length - 1]),
+      points: grayToRaster(lit, w, h),
+      threshold,
+      pointCount: xs.length,
+    })
+  }
 
   if (xs.length < MIN_EDGE_POINTS) return null
 
@@ -341,6 +399,62 @@ export interface RectifyResult {
    * and a second code path that could drift from this one.
    */
   quad: Quad | null
+  /**
+   * The corner search's intermediates, or null unless `trace` was asked for.
+   *
+   * Off by default because `recognize` runs this path too and would otherwise
+   * allocate three images per scan for nobody to look at.
+   */
+  trace: QuadTrace | null
+}
+
+/**
+ * How `rectifyCard` gets from the search region to a flattened card.
+ *
+ * - `detect` — the original path: find the card's corners, warp them flat.
+ * - `framed` — assume the user did the framing, and take the search region
+ *   itself as the card.
+ *
+ * `framed` is an experiment, not a replacement. It trades away every correction
+ * for perspective, rotation and sloppy alignment in exchange for never being
+ * *wrong* about where the card is — which is the detect path's one real failure
+ * mode, since a quad that latches onto a table seam or a sleeve produces a
+ * confidently warped image of the wrong thing. Whether that trade pays depends
+ * entirely on how well people actually centre the card, so decide it with
+ * `npm run scan:eval -- --framed`, not by argument.
+ */
+export type RectifyMode = 'detect' | 'framed'
+
+/**
+ * Trimmed off each edge of the search region in `framed` mode, as a fraction.
+ *
+ * Zero to start: `SEARCH_MARGIN` in `model/frame.ts` already pulls the region a
+ * touch inside the reticle, so a well-centred card should fill it. This is the
+ * knob to turn if the flattened cards come out with a rim of background around
+ * them — every such rim is signal the descriptor has to average over in
+ * `full-card` mode, where the card's own border is one of the features.
+ */
+export const FRAMED_INSET = 0
+
+/**
+ * The search region as a quad, inset by `FRAMED_INSET`.
+ *
+ * Phrased as a quad rather than a `Rect` so the framed path can hand it to the
+ * same `warpQuad` the detect path uses, and so `RectifyResult.quad` carries the
+ * rectangle that was actually assumed — the debug overlay then draws the framed
+ * path's assumption exactly where it draws the detect path's detection.
+ */
+export function framedQuad(region: Raster): Quad {
+  const x0 = FRAMED_INSET * region.width
+  const y0 = FRAMED_INSET * region.height
+  const x1 = region.width - x0
+  const y1 = region.height - y0
+  return [
+    [x0, y0],
+    [x1, y0],
+    [x1, y1],
+    [x0, y1],
+  ]
 }
 
 /**
@@ -351,8 +465,20 @@ export interface RectifyResult {
  * frame is what keeps the corner search honest, since it bounds the clutter the
  * extreme-point method has to survive.
  */
-export function rectifyCard(region: Raster): RectifyResult {
-  const quad = detectCardQuad(region)
+export function rectifyCard(
+  region: Raster,
+  options: { trace?: boolean; mode?: RectifyMode } = {},
+): RectifyResult {
+  if (options.mode === 'framed') return rectifyFramedCard(region)
+
+  // Through a holder rather than a bare `let`, because control-flow analysis
+  // cannot see that a callback passed into a function was called and would type
+  // the result as `null`.
+  const traced: { value: QuadTrace | null } = { value: null }
+  const quad = detectCardQuad(
+    region,
+    options.trace ? (trace) => (traced.value = trace) : undefined,
+  )
   const card = quad ? warpQuad(region, quad, CARD_WIDTH, CARD_HEIGHT) : null
 
   // No corners found: fall back to treating the search region as the card. That
@@ -360,5 +486,38 @@ export function rectifyCard(region: Raster): RectifyResult {
   // roughly filled, so the descriptor usually still lands on the right card.
   // Degrading rather than failing is the point — the scanner keeps working while
   // the user reframes, instead of going blank and looking broken.
-  return { card: card ?? region, detected: card !== null, quad: card ? quad : null }
+  return {
+    card: card ?? region,
+    detected: card !== null,
+    quad: card ? quad : null,
+    trace: traced.value,
+  }
+}
+
+/**
+ * The `framed` path: no corner search, no perspective correction.
+ *
+ * Still goes through `warpQuad` rather than just returning `region`, for two
+ * reasons. It produces a `CARD_WIDTH` x `CARD_HEIGHT` card like the detect path
+ * does, so the two are interchangeable everywhere downstream and comparable to
+ * each other in the eval harness. And it is the same bilinear sampler, so the
+ * only difference between the two paths is which quad went in — which is the
+ * point of the experiment. On a card-shaped region the homography degenerates to
+ * a plain scale, so this costs one pass over 200x280 pixels and nothing else.
+ *
+ * `trace` is always null: the trace describes the corner search, and there is no
+ * corner search here. Reporting an empty one would be worse than reporting none.
+ */
+function rectifyFramedCard(region: Raster): RectifyResult {
+  const quad = framedQuad(region)
+  const card = warpQuad(region, quad, CARD_WIDTH, CARD_HEIGHT)
+
+  // The same degrade as the detect path, for the same reason. Only reachable if
+  // the region is a sliver — a rectangle is never otherwise degenerate.
+  return {
+    card: card ?? region,
+    detected: card !== null,
+    quad: card ? quad : null,
+    trace: null,
+  }
 }

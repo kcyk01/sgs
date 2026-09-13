@@ -142,6 +142,37 @@ export function sobelMagnitude(
   return out
 }
 
+/**
+ * A single-channel buffer as an opaque grayscale `Raster`.
+ *
+ * Only the diagnostics need this — the pipeline itself is happier working in
+ * `Float32Array`, and every conversion back to 8-bit throws away precision the
+ * next stage would have used. It lives here rather than in `model/debugImage.ts`
+ * because the values being shown belong to `pipeline/`, and a `Raster` is the one
+ * currency both halves already speak.
+ *
+ * `peak` is the value that maps to white. Luma is already 0-255, but a Sobel
+ * magnitude is unbounded, so its caller passes the frame's own maximum and gets
+ * an image scaled to whatever contrast that frame happened to have.
+ */
+export function grayToRaster(
+  values: Float32Array,
+  width: number,
+  height: number,
+  peak = 255,
+): Raster {
+  const data = new Uint8ClampedArray(width * height * 4)
+  const gain = peak > 0 ? 255 / peak : 0
+  for (let p = 0, i = 0; p < values.length; p++, i += 4) {
+    const v = values[p] * gain
+    data[i] = v
+    data[i + 1] = v
+    data[i + 2] = v
+    data[i + 3] = 255
+  }
+  return { data, width, height }
+}
+
 /** Copies a sub-rectangle out of a raster. The rect is clamped to the bounds. */
 export function cropRaster(raster: Raster, rect: Rect): Raster {
   const x0 = Math.max(0, Math.round(rect.x))

@@ -4,7 +4,13 @@ import {
   drawQuad,
   rasterToCanvas,
 } from '../features/scan/model/debugImage'
-import { CARD_ASPECT, quadMetrics } from '../features/scan/pipeline/rectify'
+import {
+  CARD_ASPECT,
+  DETECT_WIDTH,
+  EDGE_PERCENTILE,
+  MIN_EDGE_POINTS,
+  quadMetrics,
+} from '../features/scan/pipeline/rectify'
 import type { Quad, Raster } from '../features/scan/pipeline/image'
 import type { ScanDebug } from '../features/scan/types'
 
@@ -28,12 +34,20 @@ function DebugFigure({
   quad,
   caption,
   filename,
+  pixelated = false,
 }: {
   raster: Raster
   /** Drawn over the image when present. */
   quad?: Quad | null
   caption: string
   filename: string
+  /**
+   * Set for the corner search's images, which are 128px wide and get blown up to
+   * the panel's width. Smoothing them would invent detail the detector never
+   * had, and the coarseness is half the point: an edge point is one of ~22k
+   * pixels, so an outlier that drags a corner is a single visible square.
+   */
+  pixelated?: boolean
 }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -47,7 +61,9 @@ function DebugFigure({
 
     const canvas = rasterToCanvas(raster)
     if (quad) drawQuad(canvas, quad)
-    canvas.className = 'scan__debug-canvas'
+    canvas.className = pixelated
+      ? 'scan__debug-canvas scan__debug-canvas--pixels'
+      : 'scan__debug-canvas'
     canvasRef.current = canvas
     host.replaceChildren(canvas)
 
@@ -55,7 +71,7 @@ function DebugFigure({
       host.replaceChildren()
       canvasRef.current = null
     }
-  }, [raster, quad])
+  }, [raster, quad, pixelated])
 
   return (
     <figure className="scan__debug-figure">
@@ -80,7 +96,7 @@ function DebugFigure({
 }
 
 export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string }) {
-  const { region, card, quad, detected } = debug
+  const { region, card, quad, detected, trace } = debug
   const metrics = quad ? quadMetrics(quad, region) : null
 
   return (
@@ -93,6 +109,18 @@ export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string
       <dl className="scan__debug-stats">
         <dt>Quad</dt>
         <dd>{detected ? 'detected' : 'not found — using the region as the card'}</dd>
+        {trace && (
+          <>
+            <dt>Edge points</dt>
+            <dd>
+              {trace.pointCount} above {trace.threshold.toFixed(1)}{' '}
+              <span className="muted">
+                (top {((1 - EDGE_PERCENTILE) * 100).toFixed(0)}% of gradients; under{' '}
+                {MIN_EDGE_POINTS} the search gives up)
+              </span>
+            </dd>
+          </>
+        )}
         {metrics && (
           <>
             <dt>Fills</dt>
@@ -117,6 +145,32 @@ export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string
         caption="Reticle region — the pixels searched. Drop this into test-images/."
         filename={`${stem}.png`}
       />
+      {/* The corner search, in the order it runs, between the region it was handed
+          and the quad it came out with. All three are at `DETECT_WIDTH`, which is
+          the resolution the detector actually reasons at — showing them at the
+          capture's 480px would flatter it. */}
+      {trace && (
+        <>
+          <DebugFigure
+            raster={trace.gray}
+            pixelated
+            caption={`Grayscale at ${DETECT_WIDTH}px — the image the Sobel ran on.`}
+            filename={`debug-${stem}-gray.png`}
+          />
+          <DebugFigure
+            raster={trace.edges}
+            pixelated
+            caption="Sobel magnitude, scaled to this frame's strongest gradient."
+            filename={`debug-${stem}-edges.png`}
+          />
+          <DebugFigure
+            raster={trace.points}
+            pixelated
+            caption="Edge points, before the corners are taken. Anything lit here can become a corner."
+            filename={`debug-${stem}-points.png`}
+          />
+        </>
+      )}
       <DebugFigure
         raster={region}
         quad={quad}

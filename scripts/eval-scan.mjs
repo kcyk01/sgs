@@ -13,6 +13,7 @@
  *   npm run scan:eval -- --in photos         read from somewhere else
  *   npm run scan:eval -- --explain jiang-wei why did this one not match?
  *   npm run scan:eval -- --reticle           photos are whole camera frames
+ *   npm run scan:eval -- --framed            skip corner detection entirely
  *
  * `--explain` takes a character id or a filename and dumps every intermediate
  * for that photo — corner detection, the flattened card as a PNG, descriptor
@@ -95,6 +96,15 @@ const inDir = path.resolve(flag('in', 'eval-photos'))
 const sweep = args.includes('--sweep')
 const explain = flag('explain', null)
 const reticle = args.includes('--reticle')
+/**
+ * Take the search region as the card instead of hunting for its corners.
+ *
+ * The comparison this flag exists for: run the suite twice, with and without,
+ * and see whether correcting perspective is worth the chance of locking onto
+ * the wrong quad. Note that `detected` stops being informative under it — the
+ * framed path always "detects", because it assumes rather than looks.
+ */
+const framed = args.includes('--framed')
 const debugDir = path.resolve(flag('debug-out', 'eval-debug'))
 
 /**
@@ -281,7 +291,7 @@ async function flattenAll() {
   const cards = []
   for (const { file, label } of photos) {
     const region = await loadPhoto(path.join(inDir, file))
-    const { card, detected } = rectifyCard(region)
+    const { card, detected } = rectifyCard(region, framed ? { mode: 'framed' } : {})
     cards.push({ file, label, card, detected })
   }
   return cards

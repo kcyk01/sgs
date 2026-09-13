@@ -3,6 +3,7 @@ import { decodeDescriptor, describeWindows } from '../pipeline/descriptor.ts'
 import { matchDescriptor } from '../pipeline/match.ts'
 import type { Candidate, ReferenceCard } from '../pipeline/match.ts'
 import { queryWindowRects, rectifyCard } from '../pipeline/rectify.ts'
+import type { RectifyMode } from '../pipeline/rectify.ts'
 import { createCapture } from './frame.ts'
 import { BUILT_FROM, REFERENCE_ROWS } from './references.ts'
 
@@ -31,6 +32,18 @@ import { BUILT_FROM, REFERENCE_ROWS } from './references.ts'
  */
 const RESULT_LIMIT = 5
 
+/**
+ * Which geometry path the live scanner uses — the switch for the framed
+ * experiment, flipped here rather than exposed in the UI.
+ *
+ * `'framed'` skips the corner search and treats the reticle region as the
+ * card, which is only defensible because the reticle is card-shaped and the
+ * page asks the user to fill it. Measure it first with
+ * `npm run scan:eval -- --framed`; a setting the UI can toggle is worth adding
+ * only if the two paths turn out to win on different photos.
+ */
+const RECTIFY_MODE: RectifyMode = 'framed'
+
 function decodeReferences(): ReferenceCard[] {
   return REFERENCE_ROWS.map(([artId, characterId, encoded]) => ({
     artId,
@@ -57,13 +70,21 @@ export function createRecognizer(): CardRecognizer {
    * from the one the matcher actually scored — the failure mode a separate debug
    * path invites, and the one that makes debug output worse than none.
    */
-  function run(frame: CanvasImageSource): { matches: CardMatch[]; debug: ScanDebug } | null {
+  function run(
+    frame: CanvasImageSource,
+    options: { trace?: boolean } = {},
+  ): { matches: CardMatch[]; debug: ScanDebug } | null {
     if (!capture || references.length === 0) return null
 
     const region = capture.capture(frame)
     if (!region) return null
 
-    const { card, detected, quad } = rectifyCard(region)
+    // Only `inspect` asks for the trace: `recognize` would allocate three images
+    // of the corner search's intermediates and drop them on the floor.
+    const { card, detected, quad, trace } = rectifyCard(region, {
+      trace: options.trace,
+      mode: RECTIFY_MODE,
+    })
     // How the card is cropped depends on what the references describe — the
     // generated table says which, so the two can never silently disagree.
     const queries = describeWindows(card, queryWindowRects(card, BUILT_FROM))
@@ -71,7 +92,7 @@ export function createRecognizer(): CardRecognizer {
       .slice(0, RESULT_LIMIT)
       .map(toMatch)
 
-    return { matches, debug: { region, quad, card, detected } }
+    return { matches, debug: { region, quad, card, detected, trace } }
   }
 
   return {
@@ -88,7 +109,7 @@ export function createRecognizer(): CardRecognizer {
     },
 
     async inspect(frame) {
-      return run(frame)
+      return run(frame, { trace: true })
     },
 
     dispose() {

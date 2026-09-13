@@ -55,8 +55,16 @@ Node in the eval harness.
 ## Debug Mode
 
 The toggle at the top of the scan page shows what the pipeline saw — the reticle
-region, the detected quad drawn over it, and the flattened card — and saves any of
-them as a PNG.
+region, the corner search's three intermediates, the detected quad drawn over it,
+and the flattened card — and saves any of them as a PNG.
+
+The three middle images are the corner search at its own `DETECT_WIDTH` of 128px:
+the grayscale the Sobel ran on, the edge magnitudes, and the thresholded point
+cloud *before* the corners are taken from it. That last one is the one to look at
+first when a quad comes out wrong. `detectCardQuad` has no opinion about which
+points it is handed — it takes the extremes of whatever cleared the percentile —
+so a quad tracing a table seam and a quad tracing a card are the same four lines
+on a photo, and differ only in which pixels were lit here.
 
 This is how `test-images/` should be fed. `scripts/eval-scan.mjs` treats a
 portrait photo as *already being the search region*, so a loose handheld shot is
@@ -65,8 +73,8 @@ cost `yu-ji.png` its match. A region downloaded from Debug Mode came out of the
 app's own `reticleRegion()` at `CAPTURE_WIDTH`, so the harness reproduces the
 in-app result rather than approximating it.
 
-Only the region is named to be picked up (`<character-id>.png`). The quad overlay
-and flattened card are prefixed `debug-`, because `resolveLabel` splits a filename
+Only the region is named to be picked up (`<character-id>.png`). Everything else
+is prefixed `debug-`, because `resolveLabel` splits a filename
 on the first dot — `<id>.quad.png` would resolve to `<id>` and be scanned as
 though it were a photo of a card.
 

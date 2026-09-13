@@ -1,4 +1,5 @@
 import type { Quad, Raster } from './pipeline/image'
+import type { QuadTrace } from './pipeline/rectify'
 
 /**
  * Contract between the camera UI and card recognition. The UI is written against
@@ -37,6 +38,17 @@ export interface ScanDebug {
   /** The flattened card — or `region` verbatim when `detected` is false. */
   card: Raster
   detected: boolean
+  /**
+   * How the corner search got to `quad`: the grayscale, the edge map and the
+   * thresholded point cloud, at the 128px the detector works at.
+   *
+   * Present because `quad` on its own says what was found but never why. The
+   * extreme-point method takes the corners of whatever cleared the edge
+   * threshold, so a wrong quad and a right one look identical as outlines — the
+   * difference is in which pixels were in the cloud, which is the one thing only
+   * these images show.
+   */
+  trace: QuadTrace | null
 }
 
 export interface CardRecognizer {

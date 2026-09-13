@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
-import { CardThumb } from '../components/CardThumb'
-import { characterById } from '../data/characters'
-import { characterVersions } from '../lib/versions'
-import { ScanDebugPanel } from '../components/ScanDebugPanel'
-import { MATCH_THRESHOLD, loadRecognizer } from '../features/scan/recognizer'
+import {useCallback, useEffect, useRef, useState} from 'react'
+import {Link} from 'react-router-dom'
+import {AppHeader} from '../components/AppHeader'
+import {CardThumb} from '../components/CardThumb'
+import {characterById} from '../data/characters'
+import {characterVersions} from '../lib/versions'
+import {ScanDebugPanel} from '../components/ScanDebugPanel'
+import {MATCH_THRESHOLD, loadRecognizer} from '../features/scan/recognizer'
 import type {
   CardMatch,
   CardRecognizer,
   RecognizerStatus,
   ScanDebug,
 } from '../features/scan/types'
-import { useCamera } from '../features/scan/useCamera'
-import type { Character } from '../types/character'
-import type { CardArtSource } from '../lib/images'
+import {useCamera} from '../features/scan/useCamera'
+import type {Character} from '../types/character'
+import type {CardArtSource} from '../lib/images'
 
 /**
  * Camera scanner: frame the card, take a still, identify it.
@@ -45,7 +45,7 @@ interface Suggestion {
 }
 
 export default function ScanPage() {
-  const { videoRef, state, error, start, stop } = useCamera()
+  const {videoRef, state, error, start, stop} = useCamera()
   const recognizerRef = useRef<CardRecognizer | null>(null)
   const stillRef = useRef<HTMLCanvasElement>(null)
   const [status, setStatus] = useState<RecognizerStatus>('loading')
@@ -137,7 +137,7 @@ export default function ScanPage() {
     if (!character) return []
     const versions = characterVersions(character)
     const printing = versions.find((v) => v.id === match.artId) ?? versions[0]
-    return [{ match, character, printing }]
+    return [{match, character, printing}]
   })
 
   const confident =
@@ -146,7 +146,7 @@ export default function ScanPage() {
 
   return (
     <>
-      <AppHeader title="Scan a card" />
+      <AppHeader title="Scan a card"/>
       <main className="app__main">
         <div className="scan">
           {/* Above the viewport because it changes what a capture produces, not
@@ -173,8 +173,8 @@ export default function ScanPage() {
               muted
               hidden={state !== 'live' || showStill}
             />
-            <canvas ref={stillRef} className="scan__still" hidden={!showStill} />
-            {state === 'live' && !showStill && <div className="scan__reticle" />}
+            <canvas ref={stillRef} className="scan__still" hidden={!showStill}/>
+            {state === 'live' && !showStill && <div className="scan__reticle"/>}
             {state !== 'live' && (
               <p className="scan__placeholder">
                 {state === 'starting'
@@ -224,10 +224,10 @@ export default function ScanPage() {
           )}
 
           {status === 'unavailable' && (
-            <p className="muted" style={{ fontSize: '0.875rem' }}>
+            <p className="muted" style={{fontSize: '0.875rem'}}>
               Card recognition is unavailable on this device — the camera preview
               works, but cards are not identified. Use{' '}
-              <Link to="/" style={{ color: 'var(--c-accent)' }}>
+              <Link to="/" style={{color: 'var(--c-accent)'}}>
                 search
               </Link>{' '}
               instead.
@@ -235,7 +235,7 @@ export default function ScanPage() {
           )}
 
           {status === 'error' && (
-            <p className="muted" style={{ fontSize: '0.875rem' }}>
+            <p className="muted" style={{fontSize: '0.875rem'}}>
               The card recogniser failed to load.
             </p>
           )}
@@ -258,7 +258,7 @@ export default function ScanPage() {
 
             {phase === 'result' && suggestions.length > 0 && (
               <ol className="scan__results">
-                {suggestions.map(({ match, character, printing }, index) => (
+                {suggestions.map(({match, character, printing}, index) => (
                   <li key={match.characterId}>
                     <Link
                       to={`/c/${character.id}`}

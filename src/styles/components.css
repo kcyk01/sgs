@@ -1155,6 +1155,13 @@
   border-radius: var(--r-md);
 }
 
+/* The corner search's intermediates are 128px wide and scaled up several times
+   over. Smoothing them would draw detail the detector never had — and a single
+   stray edge pixel is exactly the thing worth being able to see. */
+.scan__debug-canvas--pixels {
+  image-rendering: pixelated;
+}
+
 .scan__debug-caption {
   display: flex;
   flex-wrap: wrap;
