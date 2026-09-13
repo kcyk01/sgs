@@ -13,7 +13,8 @@
  *   npm run scan:eval -- --in photos         read from somewhere else
  *   npm run scan:eval -- --explain jiang-wei why did this one not match?
  *   npm run scan:eval -- --reticle           photos are whole camera frames
- *   npm run scan:eval -- --framed            skip corner detection entirely
+ *   npm run scan:eval -- --framed            framed pass only, no corner search
+ *   npm run scan:eval -- --detect            corner-search pass only
  *
  * `--explain` takes a character id or a filename and dumps every intermediate
  * for that photo — corner detection, the flattened card as a PNG, descriptor
@@ -70,7 +71,7 @@ import {
   toGray,
 } from '../src/features/scan/pipeline/image.ts'
 import { warpQuad } from '../src/features/scan/pipeline/homography.ts'
-import { matchDescriptor } from '../src/features/scan/pipeline/match.ts'
+import { fuseCandidates, matchDescriptor } from '../src/features/scan/pipeline/match.ts'
 import {
   ART_WINDOWS,
   CAPTURE_WIDTH,
@@ -97,14 +98,22 @@ const sweep = args.includes('--sweep')
 const explain = flag('explain', null)
 const reticle = args.includes('--reticle')
 /**
- * Take the search region as the card instead of hunting for its corners.
+ * Which geometry passes to run, and therefore what is being measured.
  *
- * The comparison this flag exists for: run the suite twice, with and without,
- * and see whether correcting perspective is worth the chance of locking onto
- * the wrong quad. Note that `detected` stops being informative under it — the
- * framed path always "detects", because it assumes rather than looks.
+ * The default is both fused, which is what the app ships — so a bare run reports
+ * the real thing rather than a component of it. `--detect` and `--framed`
+ * isolate one pass each, and exist to answer the question the fusion raises: is
+ * the combination actually beating both of its halves, or is it only beating the
+ * weaker one? A fusion that loses to a pass run alone is a fusion to delete.
+ *
+ * Note `card detected` only means something when a detect pass ran; the framed
+ * path always "detects", because it assumes rather than looks.
  */
-const framed = args.includes('--framed')
+const modes = args.includes('--detect')
+  ? ['detect']
+  : args.includes('--framed')
+    ? ['framed']
+    : ['detect', 'framed']
 const debugDir = path.resolve(flag('debug-out', 'eval-debug'))
 
 /**
@@ -286,28 +295,45 @@ if (photos.length === 0) {
   process.exit(1)
 }
 
-/** Flattens every photo once; the window search then runs over the cached cards. */
+/**
+ * Flattens every photo once per pass; the window search then runs over the cache.
+ *
+ * The passes share one `region` per photo, exactly as the app does — they differ
+ * in how they flatten it, never in what they were handed, which is the only way
+ * the fused comparison is between like and like.
+ */
 async function flattenAll() {
   const cards = []
   for (const { file, label } of photos) {
     const region = await loadPhoto(path.join(inDir, file))
-    const { card, detected } = rectifyCard(region, framed ? { mode: 'framed' } : {})
-    cards.push({ file, label, card, detected })
+    const passes = modes.map((mode) => ({ mode, ...rectifyCard(region, { mode }) }))
+    cards.push({ file, label, passes })
   }
   return cards
 }
 
-/** Runs the matcher over a given set of artwork windows. */
+/**
+ * Runs the matcher over a given set of artwork windows, fusing the passes.
+ *
+ * `fuseCandidates` is the pipeline's own, not a copy: a harness that fused
+ * differently from the app would report a number for something nobody ships.
+ * With one pass it is the identity, so `--detect` and `--framed` measure the
+ * plain single-pass ranking.
+ */
 function evaluate(cards, windows) {
-  const results = cards.map(({ file, label, card, detected }) => {
-    const ranked = matchDescriptor(
-      describeWindows(card, queryWindows(card, windows)),
-      references,
+  const results = cards.map(({ file, label, passes }) => {
+    const ranked = fuseCandidates(
+      passes.map((pass) =>
+        matchDescriptor(
+          describeWindows(pass.card, queryWindows(pass.card, windows)),
+          references,
+        ),
+      ),
     )
     return {
       file,
       label,
-      detected,
+      detected: passes.find((pass) => pass.mode === 'detect')?.detected ?? null,
       ranked,
       rank: ranked.findIndex((c) => c.characterId === label),
     }
@@ -315,7 +341,10 @@ function evaluate(cards, windows) {
 
   const top1 = results.filter((r) => r.rank === 0).length / results.length
   const top5 = results.filter((r) => r.rank >= 0 && r.rank < 5).length / results.length
-  const detectRate = results.filter((r) => r.detected).length / results.length
+  const detecting = results.filter((r) => r.detected !== null)
+  const detectRate = detecting.length
+    ? detecting.filter((r) => r.detected).length / detecting.length
+    : null
   return { results, top1, top5, detectRate }
 }
 
@@ -629,7 +658,9 @@ const { results, top1, top5, detectRate } = evaluate(cards, ART_WINDOWS)
 console.log(`${results.length} photos, ${new Set(photos.map((p) => p.label)).size} cards\n`)
 console.log(`  top-1 recall     ${pct(top1)}`)
 console.log(`  top-5 recall     ${pct(top5)}`)
-console.log(`  card detected    ${pct(detectRate)}  (rest fell back to the plain crop)`)
+console.log(`  passes           ${modes.join(' + ')}`)
+if (detectRate !== null)
+  console.log(`  card detected    ${pct(detectRate)}  (rest fell back to the plain crop)`)
 
 const failures = results.filter((r) => r.rank !== 0)
 if (failures.length) {
@@ -640,7 +671,10 @@ if (failures.length) {
     console.log(
       `  ${failure.file}\n` +
         `    wanted ${failure.label} (${place}), got ${winner.characterId} ` +
-        `at ${winner.score.toFixed(3)}${failure.detected ? '' : ' [no quad detected]'}`,
+        `at ${winner.score.toFixed(3)}` +
+        // `null` means no detect pass ran, which is not the same as a detect
+        // pass that found nothing — only the latter is worth annotating.
+        `${failure.detected === false ? ' [no quad detected]' : ''}`,
     )
   }
   if (failures.length > 20) console.log(`  ... and ${failures.length - 20} more`)

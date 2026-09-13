@@ -97,6 +97,84 @@ export function matchDescriptor(
 }
 
 /**
+ * How much of a fused score comes from the passes *agreeing* rather than from
+ * the single best one.
+ *
+ * `fuseCandidates` blends each card's best score across the passes with its mean
+ * across them. At 0 the fused ranking is the old single-pass behaviour — the
+ * best crop of the best pass wins, and a card one pass loved is enough. At 1 it
+ * is a plain mean, so a card has to convince every pass. 0.5 sits between: a
+ * card seen well twice outranks a card seen brilliantly once, but a pass that
+ * failed outright cannot veto the other's answer.
+ *
+ * The knob exists because the two geometry paths fail differently and it is not
+ * obvious a priori which way the trade goes — `detect` fails by warping the
+ * wrong quad confidently, `framed` by never correcting perspective at all.
+ * Sweep it with `npm run scan:eval` rather than reasoning about it.
+ */
+export const AGREEMENT_WEIGHT = 0.5
+
+/**
+ * Combines the rankings from several passes over the same frame into one.
+ *
+ * The passes are different *geometry* over identical references — the same card
+ * flattened two ways — so a card that scores well under both is far better
+ * evidence than one that scores well under either, and the fused score is built
+ * to say so. See `AGREEMENT_WEIGHT` for the exact blend.
+ *
+ * A card missing from a pass counts as scoring zero there rather than being
+ * skipped, so the mean is over `rankings.length` and not over how many passes
+ * happened to list it. In practice every pass ranks every reference and the
+ * distinction never arises; it matters only if a pass is ever filtered before it
+ * gets here, where silently dropping the absence would turn "one pass never saw
+ * this card" into a free pass.
+ *
+ * `artId` comes from the pass that scored the card highest — the printing that
+ * actually matched, which is what the UI shows art for.
+ *
+ * Note that fusing compresses the score range: two passes at 0.90 and 0.60 fuse
+ * to 0.75, which is a worse *absolute* score than either pass's leader. The
+ * absolute-quality gate in `assignConfidence` reads that as a weaker frame, so
+ * disagreement between the passes now shows up as lower confidence. That is
+ * intended — the passes disagreeing is genuinely a reason to be less sure — but
+ * it means `MIN_USEFUL_SCORE`, `GOOD_SCORE` and the UI's `MATCH_THRESHOLD` were
+ * calibrated against single-pass scores and are worth re-checking.
+ */
+export function fuseCandidates(
+  rankings: readonly (readonly Candidate[])[],
+): Candidate[] {
+  const passes = rankings.length
+  if (passes === 0) return []
+  if (passes === 1) return [...rankings[0]]
+
+  const merged = new Map<string, { best: Candidate; total: number }>()
+  for (const ranking of rankings)
+    for (const candidate of ranking) {
+      const entry = merged.get(candidate.characterId)
+      if (!entry) merged.set(candidate.characterId, { best: candidate, total: candidate.score })
+      else {
+        entry.total += candidate.score
+        if (candidate.score > entry.best.score) entry.best = candidate
+      }
+    }
+
+  const fused = [...merged.values()].map(({ best, total }) => ({
+    characterId: best.characterId,
+    artId: best.artId,
+    score:
+      (1 - AGREEMENT_WEIGHT) * best.score + AGREEMENT_WEIGHT * (total / passes),
+    // Recomputed below from the fused scores. The per-pass confidences cannot be
+    // reused or averaged — each was a softmax over its own pass's field, so they
+    // describe separations that no longer exist in this ranking.
+    confidence: 0,
+  }))
+
+  fused.sort((a, b) => b.score - a.score)
+  assignConfidence(fused)
+  return fused
+}
+
+/**
  * Fills in each candidate's confidence: how far clear of the field it is,
  * tempered by whether the field is any good in absolute terms.
  *

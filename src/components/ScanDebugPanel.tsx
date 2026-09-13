@@ -12,7 +12,7 @@ import {
   quadMetrics,
 } from '../features/scan/pipeline/rectify'
 import type { Quad, Raster } from '../features/scan/pipeline/image'
-import type { ScanDebug } from '../features/scan/types'
+import type { ScanDebug, ScanPass } from '../features/scan/types'
 
 /**
  * What the scanner saw, between the shutter and the ranking.
@@ -95,20 +95,47 @@ function DebugFigure({
   )
 }
 
-export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string }) {
-  const { region, card, quad, detected, trace } = debug
+/**
+ * One geometry pass: the stats it produced, and every image it passed through.
+ *
+ * Captioned by mode rather than by `detected` alone, because the two paths mean
+ * different things by a quad — `detect` found one and could have found the
+ * wrong thing, `framed` assumed one and cannot have. A caption that said
+ * "detected corners" over an assumed rectangle would invite exactly the wrong
+ * conclusion from a correct picture.
+ */
+function DebugPass({
+  pass,
+  region,
+  stem,
+}: {
+  pass: ScanPass
+  /** The pixels every pass was handed — shared, so it is a prop, not a field. */
+  region: Raster
+  stem: string
+}) {
+  const { mode, quad, card, detected, trace } = pass
   const metrics = quad ? quadMetrics(quad, region) : null
+  const assumed = mode === 'framed'
 
   return (
-    <section className="scan__debug">
-      <h2 className="scan__debug-heading">Debug</h2>
+    <section className="scan__debug-pass">
+      <h3 className="scan__debug-subheading">
+        {assumed ? 'Framed pass — corner search skipped' : 'Detect pass — corner search'}
+      </h3>
 
       {/* The same numbers `npm run scan:eval -- --explain` prints under GEOMETRY,
           from the same `quadMetrics` the detector's own gates use — so what is
           read here cannot disagree with what was actually applied. */}
       <dl className="scan__debug-stats">
         <dt>Quad</dt>
-        <dd>{detected ? 'detected' : 'not found — using the region as the card'}</dd>
+        <dd>
+          {assumed
+            ? 'assumed — the region itself, inset by FRAMED_INSET'
+            : detected
+              ? 'detected'
+              : 'not found — using the region as the card'}
+        </dd>
         {trace && (
           <>
             <dt>Edge points</dt>
@@ -131,20 +158,15 @@ export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string
               <span className="muted">(a card square-on is {CARD_ASPECT.toFixed(3)})</span>
             </dd>
             <dt>Corners</dt>
-            <dd>{quad?.map(([x, y]) => `(${Math.round(x)},${Math.round(y)})`).join(' ')}</dd>
+            <dd>
+              {quad
+                ?.map(([x, y]: readonly [number, number]) => `(${Math.round(x)},${Math.round(y)})`)
+                .join(' ')}
+            </dd>
           </>
         )}
       </dl>
 
-      {/* Only the region is named so the eval harness will pick it up. Its
-          `resolveLabel` splits a filename on the first dot, so `<id>.quad.png`
-          would resolve to `<id>` and be scanned as though it were a photo of a
-          card — the `debug-` prefix keeps the diagnostics out of the numbers. */}
-      <DebugFigure
-        raster={region}
-        caption="Reticle region — the pixels searched. Drop this into test-images/."
-        filename={`${stem}.png`}
-      />
       {/* The corner search, in the order it runs, between the region it was handed
           and the quad it came out with. All three are at `DETECT_WIDTH`, which is
           the resolution the detector actually reasons at — showing them at the
@@ -155,19 +177,19 @@ export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string
             raster={trace.gray}
             pixelated
             caption={`Grayscale at ${DETECT_WIDTH}px — the image the Sobel ran on.`}
-            filename={`debug-${stem}-gray.png`}
+            filename={`debug-${stem}-${mode}-gray.png`}
           />
           <DebugFigure
             raster={trace.edges}
             pixelated
             caption="Sobel magnitude, scaled to this frame's strongest gradient."
-            filename={`debug-${stem}-edges.png`}
+            filename={`debug-${stem}-${mode}-edges.png`}
           />
           <DebugFigure
             raster={trace.points}
             pixelated
             caption="Edge points, before the corners are taken. Anything lit here can become a corner."
-            filename={`debug-${stem}-points.png`}
+            filename={`debug-${stem}-${mode}-points.png`}
           />
         </>
       )}
@@ -175,21 +197,50 @@ export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string
         raster={region}
         quad={quad}
         caption={
-          detected
-            ? 'Detected corners. Should trace the card, not the background.'
-            : 'No corners found — nothing to draw.'
+          assumed
+            ? 'Assumed corners. Whatever is outside this is thrown away unseen.'
+            : detected
+              ? 'Detected corners. Should trace the card, not the background.'
+              : 'No corners found — nothing to draw.'
         }
-        filename={`debug-${stem}-quad.png`}
+        filename={`debug-${stem}-${mode}-quad.png`}
       />
       <DebugFigure
         raster={card}
         caption={
-          detected
-            ? 'Flattened card — what the descriptor saw.'
-            : 'Fallback: the region used unflattened.'
+          assumed
+            ? 'Scaled card — the region, unwarped, at card size.'
+            : detected
+              ? 'Flattened card — what the descriptor saw.'
+              : 'Fallback: the region used unflattened.'
         }
-        filename={`debug-${stem}-card.png`}
+        filename={`debug-${stem}-${mode}-card.png`}
       />
+    </section>
+  )
+}
+
+export function ScanDebugPanel({ debug, stem }: { debug: ScanDebug; stem: string }) {
+  return (
+    <section className="scan__debug">
+      <h2 className="scan__debug-heading">Debug</h2>
+
+      {/* Only the region is named so the eval harness will pick it up. Its
+          `resolveLabel` splits a filename on the first dot, so `<id>.quad.png`
+          would resolve to `<id>` and be scanned as though it were a photo of a
+          card — the `debug-` prefix keeps the diagnostics out of the numbers. */}
+      <DebugFigure
+        raster={debug.region}
+        caption="Reticle region — the pixels searched. Drop this into test-images/."
+        filename={`${stem}.png`}
+      />
+
+      {/* Every pass, in the order they were fused. Both are shown even when they
+          agree: the interesting case is the one where the fused answer is wrong,
+          and that is only readable against the pass that produced it. */}
+      {debug.passes.map((pass) => (
+        <DebugPass key={pass.mode} pass={pass} region={debug.region} stem={stem} />
+      ))}
     </section>
   )
 }

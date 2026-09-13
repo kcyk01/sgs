@@ -1,6 +1,6 @@
-import type { CardMatch, CardRecognizer, ScanDebug } from '../types.ts'
+import type { CardMatch, CardRecognizer, ScanDebug, ScanPass } from '../types.ts'
 import { decodeDescriptor, describeWindows } from '../pipeline/descriptor.ts'
-import { matchDescriptor } from '../pipeline/match.ts'
+import { fuseCandidates, matchDescriptor } from '../pipeline/match.ts'
 import type { Candidate, ReferenceCard } from '../pipeline/match.ts'
 import { queryWindowRects, rectifyCard } from '../pipeline/rectify.ts'
 import type { RectifyMode } from '../pipeline/rectify.ts'
@@ -29,20 +29,32 @@ import { BUILT_FROM, REFERENCE_ROWS } from './references.ts'
  * the ranking is stable enough to show: when the top match is unconvincing, the
  * page offers the runners-up rather than a bare failure. Returning them costs
  * nothing — the matcher has already scored every card.
+ *
+ * Ten rather than five since the ranking became a fusion of two passes. Fusing
+ * moves cards around in the tail — a card either pass ranked sixth can land
+ * fourth once both are counted, and vice versa — so the list the user can
+ * actually pick from should be long enough to still contain the right card when
+ * the fusion reorders it. Ten rows of art is also about as far as someone will
+ * scan before retaking the photo instead.
  */
-const RESULT_LIMIT = 5
+const RESULT_LIMIT = 10
 
 /**
- * Which geometry path the live scanner uses — the switch for the framed
- * experiment, flipped here rather than exposed in the UI.
+ * The geometry passes every capture goes through, whose rankings are then fused.
  *
- * `'framed'` skips the corner search and treats the reticle region as the
- * card, which is only defensible because the reticle is card-shaped and the
- * page asks the user to fill it. Measure it first with
- * `npm run scan:eval -- --framed`; a setting the UI can toggle is worth adding
- * only if the two paths turn out to win on different photos.
+ * Both, rather than a choice between them, because the two fail on different
+ * photos: `detect` corrects perspective but can lock onto a table seam and warp
+ * the wrong quad with total confidence, while `framed` cannot be wrong about
+ * *where* the card is but never corrects anything. Neither failure is detectable
+ * from inside the pass that made it — which is the argument for running both and
+ * letting agreement between them carry the ranking. See `fuseCandidates`.
+ *
+ * The cost is one extra warp and one extra pass over the reference table, both
+ * of which are small next to the capture itself. Adding a third pass here is the
+ * cheapest experiment in the feature; removing one is the cheapest way back to
+ * a single path.
  */
-const RECTIFY_MODE: RectifyMode = 'framed'
+const RECTIFY_MODES: readonly RectifyMode[] = ['detect', 'framed']
 
 function decodeReferences(): ReferenceCard[] {
   return REFERENCE_ROWS.map(([artId, characterId, encoded]) => ({
@@ -79,20 +91,26 @@ export function createRecognizer(): CardRecognizer {
     const region = capture.capture(frame)
     if (!region) return null
 
-    // Only `inspect` asks for the trace: `recognize` would allocate three images
-    // of the corner search's intermediates and drop them on the floor.
-    const { card, detected, quad, trace } = rectifyCard(region, {
-      trace: options.trace,
-      mode: RECTIFY_MODE,
-    })
+    // Every pass sees the same region: they differ in how they flatten it, not
+    // in what they were handed, so the fusion downstream compares like with
+    // like. Only `inspect` asks for the trace — `recognize` would allocate the
+    // corner search's intermediates and drop them on the floor.
+    const passes: ScanPass[] = RECTIFY_MODES.map((mode) => ({
+      mode,
+      ...rectifyCard(region, { trace: options.trace, mode }),
+    }))
+
     // How the card is cropped depends on what the references describe — the
     // generated table says which, so the two can never silently disagree.
-    const queries = describeWindows(card, queryWindowRects(card, BUILT_FROM))
-    const matches = matchDescriptor(queries, references)
-      .slice(0, RESULT_LIMIT)
-      .map(toMatch)
+    const rankings = passes.map((pass) =>
+      matchDescriptor(
+        describeWindows(pass.card, queryWindowRects(pass.card, BUILT_FROM)),
+        references,
+      ),
+    )
+    const matches = fuseCandidates(rankings).slice(0, RESULT_LIMIT).map(toMatch)
 
-    return { matches, debug: { region, quad, card, detected, trace } }
+    return { matches, debug: { region, passes } }
   }
 
   return {

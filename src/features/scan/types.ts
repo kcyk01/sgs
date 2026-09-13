@@ -1,5 +1,5 @@
 import type { Quad, Raster } from './pipeline/image'
-import type { QuadTrace } from './pipeline/rectify'
+import type { QuadTrace, RectifyMode } from './pipeline/rectify'
 
 /**
  * Contract between the camera UI and card recognition. The UI is written against
@@ -33,10 +33,32 @@ export interface CardMatch {
 export interface ScanDebug {
   /** What the pipeline searched: the reticle crop, at `CAPTURE_WIDTH`. */
   region: Raster
-  /** Corners within `region`, or null when the search found nothing plausible. */
+  /**
+   * One entry per geometry pass, in the order they were scored and fused.
+   *
+   * A list rather than a single card because the recognizer now flattens the one
+   * region more than one way and combines the rankings. Showing only one of them
+   * would hide exactly the thing worth looking at when a fused result is wrong:
+   * which pass dragged it there.
+   */
+  passes: ScanPass[]
+}
+
+/** One geometry pass over the region: how it was flattened, and to what. */
+export interface ScanPass {
+  /** Which path produced this — see `RectifyMode`. */
+  mode: RectifyMode
+  /**
+   * Corners within `region`.
+   *
+   * In `detect` mode, what the corner search found, or null when it found
+   * nothing plausible. In `framed` mode, the rectangle that was *assumed* — the
+   * distinction is `mode`, not this field.
+   */
   quad: Quad | null
   /** The flattened card — or `region` verbatim when `detected` is false. */
   card: Raster
+  /** Whether `card` is a warp of `quad` rather than the region fallback. */
   detected: boolean
   /**
    * How the corner search got to `quad`: the grayscale, the edge map and the
@@ -47,6 +69,8 @@ export interface ScanDebug {
    * threshold, so a wrong quad and a right one look identical as outlines — the
    * difference is in which pixels were in the cloud, which is the one thing only
    * these images show.
+   *
+   * Always null in `framed` mode: there is no corner search to trace.
    */
   trace: QuadTrace | null
 }
