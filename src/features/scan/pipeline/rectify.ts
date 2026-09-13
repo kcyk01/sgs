@@ -259,15 +259,28 @@ export function detectCardQuad(region: Raster): Quad | null {
   return isPlausibleCard(quad, region) ? quad : null
 }
 
+/** The measurements every gate and every report of a quad is phrased in. */
+export interface QuadMetrics {
+  /** Shoelace area in region pixels. */
+  area: number
+  /** `area` as a fraction of the whole search region. */
+  areaFraction: number
+  /** Mean width over mean height. A card square-on to the lens is `CARD_ASPECT`. */
+  aspect: number
+  /** Edge lengths, in the corner order TL->TR->BR->BL. */
+  sides: { top: number; right: number; bottom: number; left: number }
+}
+
 /**
- * Rejects detections that cannot be a card held up to the camera.
+ * Everything the gates below — and the debug UI, and the eval harness — want to
+ * know about a detected quad.
  *
- * Each gate corresponds to a real failure seen in this kind of detector: a quad
- * collapsing onto a strong background line, the extremes latching onto the ROI
- * border and returning the whole region, and a shape whose proportions are not a
- * card at any viewing angle.
+ * Exported because all three used to compute it separately: `isPlausibleCard`
+ * inline, `--explain` in scripts/eval-scan.mjs, and now the scan page's debug
+ * panel. Three copies of a shoelace sum is three chances for the number the user
+ * reads to disagree with the number the gate actually applied.
  */
-function isPlausibleCard(quad: Quad, region: Raster): boolean {
+export function quadMetrics(quad: Quad, region: Raster): QuadMetrics {
   // Shoelace area. Also catches self-intersecting quads, which come out negative
   // or near zero and fail the area gate on their own.
   let area = 0
@@ -277,18 +290,40 @@ function isPlausibleCard(quad: Quad, region: Raster): boolean {
     area += x0 * y1 - x1 * y0
   }
   area = Math.abs(area) / 2
-  if (area < MIN_AREA_FRACTION * region.width * region.height) return false
 
   const side = (a: readonly [number, number], b: readonly [number, number]) =>
     Math.hypot(a[0] - b[0], a[1] - b[1])
-  const top = side(quad[0], quad[1])
-  const right = side(quad[1], quad[2])
-  const bottom = side(quad[2], quad[3])
-  const left = side(quad[3], quad[0])
-  if (Math.min(top, right, bottom, left) < 0.1 * Math.min(region.width, region.height))
-    return false
+  const sides = {
+    top: side(quad[0], quad[1]),
+    right: side(quad[1], quad[2]),
+    bottom: side(quad[2], quad[3]),
+    left: side(quad[3], quad[0]),
+  }
 
-  const aspect = ((top + bottom) / 2) / ((left + right) / 2)
+  return {
+    area,
+    areaFraction: area / (region.width * region.height),
+    aspect: (sides.top + sides.bottom) / 2 / ((sides.left + sides.right) / 2),
+    sides,
+  }
+}
+
+/**
+ * Rejects detections that cannot be a card held up to the camera.
+ *
+ * Each gate corresponds to a real failure seen in this kind of detector: a quad
+ * collapsing onto a strong background line, the extremes latching onto the ROI
+ * border and returning the whole region, and a shape whose proportions are not a
+ * card at any viewing angle.
+ */
+function isPlausibleCard(quad: Quad, region: Raster): boolean {
+  const { areaFraction, aspect, sides } = quadMetrics(quad, region)
+
+  if (areaFraction < MIN_AREA_FRACTION) return false
+
+  const shortest = Math.min(sides.top, sides.right, sides.bottom, sides.left)
+  if (shortest < 0.1 * Math.min(region.width, region.height)) return false
+
   return aspect >= MIN_DETECTED_ASPECT && aspect <= MAX_DETECTED_ASPECT
 }
 
@@ -297,6 +332,15 @@ export interface RectifyResult {
   card: Raster
   /** Whether corners were found, or the search region was used verbatim. */
   detected: boolean
+  /**
+   * The corners, in region pixels, or null when the search failed.
+   *
+   * Carried out rather than discarded so the debug overlay can draw the quad on
+   * the very region it was found in. Without it the only way to see what the
+   * detector locked onto is to re-run `detectCardQuad`, which is both wasteful
+   * and a second code path that could drift from this one.
+   */
+  quad: Quad | null
 }
 
 /**
@@ -316,5 +360,5 @@ export function rectifyCard(region: Raster): RectifyResult {
   // roughly filled, so the descriptor usually still lands on the right card.
   // Degrading rather than failing is the point — the scanner keeps working while
   // the user reframes, instead of going blank and looking broken.
-  return { card: card ?? region, detected: card !== null }
+  return { card: card ?? region, detected: card !== null, quad: card ? quad : null }
 }

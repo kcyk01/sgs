@@ -4,8 +4,14 @@ import { AppHeader } from '../components/AppHeader'
 import { CardThumb } from '../components/CardThumb'
 import { characterById } from '../data/characters'
 import { characterVersions } from '../lib/versions'
+import { ScanDebugPanel } from '../components/ScanDebugPanel'
 import { MATCH_THRESHOLD, loadRecognizer } from '../features/scan/recognizer'
-import type { CardMatch, CardRecognizer, RecognizerStatus } from '../features/scan/types'
+import type {
+  CardMatch,
+  CardRecognizer,
+  RecognizerStatus,
+  ScanDebug,
+} from '../features/scan/types'
 import { useCamera } from '../features/scan/useCamera'
 import type { Character } from '../types/character'
 import type { CardArtSource } from '../lib/images'
@@ -45,6 +51,11 @@ export default function ScanPage() {
   const [status, setStatus] = useState<RecognizerStatus>('loading')
   const [phase, setPhase] = useState<Phase>('framing')
   const [matches, setMatches] = useState<CardMatch[]>([])
+  // Debug Mode: show what the pipeline saw between shutter and ranking, and let
+  // it be saved as an eval photo. Off by default and not persisted — it is a
+  // tool for building `test-images/`, not a preference.
+  const [debug, setDebug] = useState(false)
+  const [artifacts, setArtifacts] = useState<ScanDebug | null>(null)
 
   // Load (or discover the absence of) the recognizer once.
   useEffect(() => {
@@ -85,15 +96,27 @@ export default function ScanPage() {
 
     setPhase('analyzing')
     try {
-      setMatches(await recognizer.recognize(canvas))
+      // `inspect` runs the same pipeline and keeps the intermediates, so the
+      // debug images are necessarily the ones that produced these matches. It is
+      // optional on the interface, hence the fallback rather than an assertion.
+      if (debug && recognizer.inspect) {
+        const result = await recognizer.inspect(canvas)
+        setMatches(result?.matches ?? [])
+        setArtifacts(result?.debug ?? null)
+      } else {
+        setMatches(await recognizer.recognize(canvas))
+        setArtifacts(null)
+      }
     } catch {
       setMatches([])
+      setArtifacts(null)
     }
     setPhase('result')
-  }, [videoRef])
+  }, [debug, videoRef])
 
   const retake = useCallback(() => {
     setMatches([])
+    setArtifacts(null)
     setPhase('framing')
   }, [])
 
@@ -126,6 +149,21 @@ export default function ScanPage() {
       <AppHeader title="Scan a card" />
       <main className="app__main">
         <div className="scan">
+          {/* Above the viewport because it changes what a capture produces, not
+              how a result is displayed — reading it after pressing Capture would
+              be too late. */}
+          <label className="scan__toggle">
+            <input
+              type="checkbox"
+              checked={debug}
+              onChange={(e) => setDebug(e.target.checked)}
+            />
+            <span>Debug Mode</span>
+            <span className="muted scan__toggle-hint">
+              show and save what the scanner saw
+            </span>
+          </label>
+
           <div className="scan__viewport">
             <video
               ref={videoRef}
@@ -250,6 +288,16 @@ export default function ScanPage() {
               </ol>
             )}
           </div>
+
+          {/* Named after the top match so a correct scan downloads a file that
+              drops straight into `test-images/`; a wrong one needs renaming,
+              which is the same work as naming it from scratch. */}
+          {debug && artifacts && (
+            <ScanDebugPanel
+              debug={artifacts}
+              stem={matches[0]?.characterId ?? 'scan'}
+            />
+          )}
         </div>
       </main>
     </>

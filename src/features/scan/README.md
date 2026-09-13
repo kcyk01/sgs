@@ -39,11 +39,36 @@ of a keypoint search, which is the entire reason this needs no OpenCV.js.
 | `types.ts` | `CardRecognizer` interface + `CardMatch` result shape |
 | `recognizer.ts` | Single load point, behind a dynamic `import()` |
 | `useCamera.ts` | `getUserMedia` lifecycle (rear camera, cleanup, permissions) |
-| `model/frame.ts` | The only DOM-aware file: video -> pixels, and reticle geometry |
+| `model/frame.ts` | DOM in: video -> pixels, and reticle geometry |
+| `model/debugImage.ts` | DOM out: intermediates -> canvas -> downloadable PNG |
 | `model/localRecognizer.ts` | Wires the pipeline to `CardRecognizer` |
 | `model/references.ts` | GENERATED descriptors + `BUILT_FROM` mode |
 | `pipeline/*.ts` | Platform-free image maths, shared with the build scripts |
 | `../../routes/ScanPage.tsx` | UI: viewport, reticle, capture/retake, results |
+| `../../components/ScanDebugPanel.tsx` | Debug Mode: the intermediates, as images |
+
+`model/` is the only half that touches the DOM, split by direction: `frame.ts`
+carries the page into the pipeline, `debugImage.ts` carries the pipeline back out
+to the page. `pipeline/` imports neither, which is what keeps it runnable under
+Node in the eval harness.
+
+## Debug Mode
+
+The toggle at the top of the scan page shows what the pipeline saw — the reticle
+region, the detected quad drawn over it, and the flattened card — and saves any of
+them as a PNG.
+
+This is how `test-images/` should be fed. `scripts/eval-scan.mjs` treats a
+portrait photo as *already being the search region*, so a loose handheld shot is
+measured against clutter the app would have cropped away — which is exactly what
+cost `yu-ji.png` its match. A region downloaded from Debug Mode came out of the
+app's own `reticleRegion()` at `CAPTURE_WIDTH`, so the harness reproduces the
+in-app result rather than approximating it.
+
+Only the region is named to be picked up (`<character-id>.png`). The quad overlay
+and flattened card are prefixed `debug-`, because `resolveLabel` splits a filename
+on the first dot — `<id>.quad.png` would resolve to `<id>` and be scanned as
+though it were a photo of a card.
 
 ## What the references are
 

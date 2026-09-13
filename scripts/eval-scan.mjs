@@ -79,6 +79,7 @@ import {
   EDGE_PERCENTILE,
   artWindowRect,
   detectCardQuad,
+  queryWindowRects,
   rectifyCard,
 } from '../src/features/scan/pipeline/rectify.ts'
 import { reticleRegion } from '../src/features/scan/model/frame.ts'
@@ -121,6 +122,50 @@ const references = REFERENCE_ROWS.map(([artId, characterId, encoded]) => ({
   characterId,
   descriptor: decodeDescriptor(encoded),
 }))
+
+/**
+ * The windows a query is described at, and their pixel rects — both derived from
+ * `BUILT_FROM` rather than assumed.
+ *
+ * `full-card` mode has exactly one window, the card itself, so there is no
+ * `ArtWindow` to name it with and `QUERY_WINDOWS` holds a single `null`. Keeping
+ * that placeholder is what lets the reporting below stay index-aligned with
+ * `describeWindows`' output in both modes instead of branching at every use.
+ *
+ * `--sweep` still passes its own window list, which only means anything in
+ * `artwork` mode; in `full-card` mode every sweep row describes the same whole
+ * card, which is the honest answer rather than a bug.
+ */
+const QUERY_WINDOWS = BUILT_FROM === 'full-card' ? [null] : ART_WINDOWS
+
+const queryWindows = (card, windows = ART_WINDOWS) =>
+  BUILT_FROM === 'full-card'
+    ? queryWindowRects(card, BUILT_FROM)
+    : windows.map((window) => artWindowRect(card, window))
+
+/** One window as a row label; `full-card` mode has no edges to print. */
+const fmt = (window) =>
+  window
+    ? `${window.left.toFixed(2)}/${window.right.toFixed(2)}/` +
+      `${window.top.toFixed(2)}/${window.bottom.toFixed(2)}`
+    : 'whole card'
+
+/**
+ * Where the images the descriptors were actually built from live, mirroring
+ * `build-card-descriptors.mjs`.
+ *
+ * Hardcoding `public/cards/*.webp` here was fine while that was the only source,
+ * but in `full-card` mode it reports the aspect and freshness of an image the
+ * stored descriptor was never derived from — so the one check meant to catch a
+ * stale descriptor would itself be reading the wrong file.
+ */
+const REFERENCE_DIR = BUILT_FROM === 'full-card' ? 'full-card' : 'public/cards'
+
+const referenceFiles = new Map(
+  (await readdir(REFERENCE_DIR).catch(() => []))
+    .filter((f) => /\.(webp|png|jpe?g|avif)$/i.test(f))
+    .map((f) => [path.basename(f, path.extname(f)), path.join(REFERENCE_DIR, f)]),
+)
 
 /**
  * Decoded at the app's own capture width, imported rather than repeated.
@@ -245,11 +290,10 @@ async function flattenAll() {
 /** Runs the matcher over a given set of artwork windows. */
 function evaluate(cards, windows) {
   const results = cards.map(({ file, label, card, detected }) => {
-    const rects =
-      BUILT_FROM === 'full-card'
-        ? [{ x: 0, y: 0, width: card.width, height: card.height }]
-        : windows.map((window) => artWindowRect(card, window))
-    const ranked = matchDescriptor(describeWindows(card, rects), references)
+    const ranked = matchDescriptor(
+      describeWindows(card, queryWindows(card, windows)),
+      references,
+    )
     return {
       file,
       label,
@@ -398,8 +442,7 @@ async function explainPhoto({ file, label }) {
   )
 
   // --- 3. Descriptor health: can this crop discriminate at all? ---
-  const rects = artWindowRects(flattened)
-  const queries = describeWindows(flattened, rects)
+  const queries = describeWindows(flattened, queryWindows(flattened))
   const cells = resampleGray(toGray(flattened), flattened.width, flattened.height, 16, 16)
   const mean = cells.reduce((a, b) => a + b, 0) / cells.length
   const sd = Math.sqrt(cells.reduce((a, b) => a + (b - mean) ** 2, 0) / cells.length)
@@ -417,7 +460,10 @@ async function explainPhoto({ file, label }) {
     `\nRANKING\n  ${label} placed ${rank < 0 ? 'UNRANKED' : `#${rank + 1} of ${ranked.length}`}` +
       `${rank > 0 ? `, ${(ranked[0].score - ranked[rank].score).toFixed(3)} behind the winner` : ''}`,
   )
-  console.log('\n  #   card                 score   luma    hue    best window (inset/top/height)')
+  console.log(
+    '\n  #   card                 score   luma    hue    best window ' +
+      `(${BUILT_FROM === 'full-card' ? 'n/a' : 'left/right/top/bottom'})`,
+  )
   const rows = [...ranked.slice(0, 5)]
   if (rank >= 5) rows.push(ranked[rank])
   for (const candidate of rows) {
@@ -426,7 +472,7 @@ async function explainPhoto({ file, label }) {
     let best = null
     queries.forEach((query, i) => {
       const s = similarity(query, reference.descriptor)
-      if (!best || s.score > best.s.score) best = { s, window: ART_WINDOWS[i] }
+      if (!best || s.score > best.s.score) best = { s, window: QUERY_WINDOWS[i] }
     })
     console.log(
       `  ${String(place).padStart(2)}  ${candidate.characterId.padEnd(20)} ` +
@@ -436,14 +482,42 @@ async function explainPhoto({ file, label }) {
     )
   }
 
-  // --- 5. Every window against the wanted card, to expose a crop mismatch. ---
+  // --- 5. How the wanted card scored, and against what. ---
   for (const reference of wanted) {
-    console.log(`\n  all ${ART_WINDOWS.length} windows vs ${reference.artId}:`)
     const scores = queries.map((query, i) => ({
-      window: ART_WINDOWS[i],
+      window: QUERY_WINDOWS[i],
       ...similarity(query, reference.descriptor),
     }))
     scores.sort((a, b) => b.score - a.score)
+
+    if (BUILT_FROM === 'full-card') {
+      // One window, so there is no crop mismatch to expose and no spread to
+      // read. What is left is the only question still worth asking: how far
+      // short of the winner this reference fell, and on which half of the
+      // descriptor. `similarity` scores luma and hue separately, and a card
+      // losing on one is a different problem from a card losing on both.
+      const best = scores[0]
+      const winner = references.find((r) => r.artId === ranked[0].artId)
+      const top = similarity(queries[0], winner.descriptor)
+      const pad = (id) => id.padEnd(20)
+      console.log(`\n  whole card vs ${reference.artId}:`)
+      console.log(
+        `    wanted   ${pad(reference.artId)} score ${best.score.toFixed(3)}  ` +
+          `luma ${best.luma.toFixed(3)}  hue ${best.hue.toFixed(3)}\n` +
+          `    winner   ${pad(ranked[0].artId)} score ${top.score.toFixed(3)}  ` +
+          `luma ${top.luma.toFixed(3)}  hue ${top.hue.toFixed(3)}\n` +
+          `    deficit  ${pad('')} ${'      '}${(top.score - best.score).toFixed(3)}  ` +
+          `luma ${(top.luma - best.luma).toFixed(3)}  hue ${(top.hue - best.hue).toFixed(3)}`,
+      )
+      console.log(
+        `    a deficit carried by luma points at the flattened card — glare, tilt or a\n` +
+          `    bad quad. One carried by hue points at colour: white balance here, or a\n` +
+          `    reference scan shot under a different light.`,
+      )
+      continue
+    }
+
+    console.log(`\n  all ${ART_WINDOWS.length} windows vs ${reference.artId}:`)
     for (const s of scores)
       console.log(
         `    ${fmt(s.window)}   score ${s.score.toFixed(3)} ` +
@@ -460,15 +534,16 @@ async function explainPhoto({ file, label }) {
   console.log('\nREFERENCE')
   const aspects = []
   for (const row of REFERENCE_ROWS) {
-    const m = await sharp(path.join('public/cards', `${row[0]}.webp`)).metadata().catch(() => null)
+    const source = referenceFiles.get(row[0])
+    const m = source ? await sharp(source).metadata().catch(() => null) : null
     if (m) aspects.push(m.width / m.height)
   }
   const median = aspects.sort((a, b) => a - b)[Math.floor(aspects.length / 2)]
   for (const reference of wanted) {
-    const file = path.join('public/cards', `${reference.artId}.webp`)
-    const m = await sharp(file).metadata().catch(() => null)
+    const file = referenceFiles.get(reference.artId)
+    const m = file ? await sharp(file).metadata().catch(() => null) : null
     if (!m) {
-      console.log(`  ${reference.artId}: NO ART FILE at ${file}`)
+      console.log(`  ${reference.artId}: NO ART FILE in ${REFERENCE_DIR}/`)
       continue
     }
     // Round-trip the reference through describe(): a low self-score would mean
@@ -489,7 +564,11 @@ async function explainPhoto({ file, label }) {
         `    stored descriptor vs art on disk: ${similarity(fresh, reference.descriptor).score.toFixed(3)} ` +
         `(1.000 = in sync; lower means \`npm run descriptors\` is overdue)\n` +
         `    an aspect far from the median means this art was cropped unlike the rest,\n` +
-        `    so the window that fits it may sit outside ART_WINDOWS entirely.`,
+        `    ${
+          BUILT_FROM === 'full-card'
+            ? 'so it is being compared against a differently-framed whole card.'
+            : 'so the window that fits it may sit outside ART_WINDOWS entirely.'
+        }`,
     )
   }
 }

@@ -1,4 +1,4 @@
-import type { CardMatch, CardRecognizer } from '../types.ts'
+import type { CardMatch, CardRecognizer, ScanDebug } from '../types.ts'
 import { decodeDescriptor, describeWindows } from '../pipeline/descriptor.ts'
 import { matchDescriptor } from '../pipeline/match.ts'
 import type { Candidate, ReferenceCard } from '../pipeline/match.ts'
@@ -49,6 +49,31 @@ export function createRecognizer(): CardRecognizer {
   let references: ReferenceCard[] = []
   let capture: ReturnType<typeof createCapture> | null = null
 
+  /**
+   * The whole pipeline, keeping what it passed through.
+   *
+   * `recognize` and `inspect` are both thin wrappers on this rather than two
+   * implementations, so Debug Mode cannot show a region or a quad that differs
+   * from the one the matcher actually scored — the failure mode a separate debug
+   * path invites, and the one that makes debug output worse than none.
+   */
+  function run(frame: CanvasImageSource): { matches: CardMatch[]; debug: ScanDebug } | null {
+    if (!capture || references.length === 0) return null
+
+    const region = capture.capture(frame)
+    if (!region) return null
+
+    const { card, detected, quad } = rectifyCard(region)
+    // How the card is cropped depends on what the references describe — the
+    // generated table says which, so the two can never silently disagree.
+    const queries = describeWindows(card, queryWindowRects(card, BUILT_FROM))
+    const matches = matchDescriptor(queries, references)
+      .slice(0, RESULT_LIMIT)
+      .map(toMatch)
+
+    return { matches, debug: { region, quad, card, detected } }
+  }
+
   return {
     async load() {
       // Synchronous work in an async method on purpose: `load` is part of the
@@ -59,16 +84,11 @@ export function createRecognizer(): CardRecognizer {
     },
 
     async recognize(frame) {
-      if (!capture || references.length === 0) return []
+      return run(frame)?.matches ?? []
+    },
 
-      const region = capture.capture(frame)
-      if (!region) return []
-
-      const { card } = rectifyCard(region)
-      // How the card is cropped depends on what the references describe — the
-      // generated table says which, so the two can never silently disagree.
-      const queries = describeWindows(card, queryWindowRects(card, BUILT_FROM))
-      return matchDescriptor(queries, references).slice(0, RESULT_LIMIT).map(toMatch)
+    async inspect(frame) {
+      return run(frame)
     },
 
     dispose() {

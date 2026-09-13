@@ -52,7 +52,7 @@ const RETICLE_INSET_X = (1 - (RETICLE_HEIGHT * CARD_ASPECT) / VIEWPORT_ASPECT) /
  * compensating for the shape mismatch as well, which is most of what it was
  * spent on.
  */
-const SEARCH_MARGIN = 0.06
+const SEARCH_MARGIN = 0.02
 
 /**
  * The part of a source frame the reticle covers, in source pixels.
