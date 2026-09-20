@@ -94,6 +94,12 @@ export default function ScanPage() {
     canvas.height = video.videoHeight
     canvas.getContext('2d')?.drawImage(video, 0, 0)
 
+    // The frame is already on the canvas, so the camera has nothing left to do.
+    // Releasing it here turns the recording indicator off at the moment of the
+    // shutter, rather than leaving a live feed running behind a still the user
+    // is reading — which looks like the page is still watching them.
+    stop()
+
     setPhase('analyzing')
     try {
       // `inspect` runs the same pipeline and keeps the intermediates, so the
@@ -112,21 +118,22 @@ export default function ScanPage() {
       setArtifacts(null)
     }
     setPhase('result')
-  }, [debug, videoRef])
+  }, [debug, stop, videoRef])
 
-  const retake = useCallback(() => {
+  // Discarding a capture also clears its result. Otherwise the previous scan's
+  // matches would sit next to a fresh preview, as though the new session had
+  // already identified something.
+  const discard = useCallback(() => {
     setMatches([])
     setArtifacts(null)
     setPhase('framing')
   }, [])
 
-  // Stopping the camera discards the capture too. Otherwise restarting it would
-  // surface the previous scan's result next to a fresh preview, as though the
-  // new session had already identified something.
-  const stopCamera = useCallback(() => {
-    retake()
-    stop()
-  }, [retake, stop])
+  // Capture stopped the camera, so going back to framing has to start it again.
+  const retake = useCallback(() => {
+    discard()
+    void start()
+  }, [discard, start])
 
   // Matches naming a card that is not in the roster cannot be linked to, so they
   // are dropped here rather than guarded at each render site. Resolving the
@@ -175,7 +182,7 @@ export default function ScanPage() {
             />
             <canvas ref={stillRef} className="scan__still" hidden={!showStill}/>
             {state === 'live' && !showStill && <div className="scan__reticle"/>}
-            {state !== 'live' && (
+            {state !== 'live' && !showStill && (
               <p className="scan__placeholder">
                 {state === 'starting'
                   ? 'Starting camera…'
@@ -185,7 +192,7 @@ export default function ScanPage() {
             )}
           </div>
 
-          {state !== 'live' && (
+          {state !== 'live' && !showStill && (
             <button
               type="button"
               className="btn btn--primary btn--block"
@@ -206,13 +213,13 @@ export default function ScanPage() {
               >
                 Capture
               </button>
-              <button type="button" className="btn btn--block" onClick={stopCamera}>
+              <button type="button" className="btn btn--block" onClick={stop}>
                 Stop camera
               </button>
             </>
           )}
 
-          {state === 'live' && showStill && (
+          {showStill && (
             <button
               type="button"
               className="btn btn--block"

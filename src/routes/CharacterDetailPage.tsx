@@ -8,6 +8,7 @@ import { HealthBadge } from '../components/HealthBadge'
 import { KingdomChip } from '../components/KingdomChip'
 import { RulesText } from '../components/RulesText'
 import { characterById } from '../data/characters'
+import { recordRecentlyViewed } from '../lib/recent'
 import { characterVersions } from '../lib/versions'
 import NotFoundPage from './NotFoundPage'
 
@@ -48,6 +49,13 @@ export default function CharacterDetailPage() {
   // No prev/next pager here on purpose: the roster has no meaningful order, so
   // stepping through it card-by-card is noise. Back to the list is the only way
   // out, which keeps the list's scroll position and filters intact.
+
+  // Keyed to the character rather than the shown version: swiping between
+  // printings is still one card visit. Runs before the not-found bail-out is
+  // reached only when the id resolved, so bad urls leave no trace.
+  useEffect(() => {
+    if (character) recordRecentlyViewed(character.id)
+  }, [character])
 
   useEffect(() => {
     if (version) document.title = `${version.name} · SGS Codex`

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Icon } from './Icon'
 import { abilityCountValues, allAbilityTags, healthValues } from '../data/characters'
 import { kingdoms } from '../data/kingdoms'
-import { toggleInList } from '../hooks/useCharacterQuery'
+import { selectOnly, toggleInList } from '../hooks/useCharacterQuery'
 import type { CharacterQuery, GroupKey, SortKey } from '../lib/query'
 import { activeFilterCount } from '../lib/query'
 
@@ -88,7 +88,7 @@ export function FilterSheet({
                   aria-pressed={selected}
                   className={`chip chip--button${selected ? ' chip--selected' : ''}`}
                   onClick={() =>
-                    setQuery({ kingdoms: toggleInList(query.kingdoms, k.id) })
+                    setQuery({ kingdoms: selectOnly(query.kingdoms, k.id) })
                   }
                 >
                   <span className="chip__dot" style={{ background: k.color }} />
@@ -111,7 +111,7 @@ export function FilterSheet({
                   aria-pressed={selected}
                   className={`chip chip--button${selected ? ' chip--selected' : ''}`}
                   onClick={() =>
-                    setQuery({ healths: toggleInList(query.healths, hp) })
+                    setQuery({ healths: selectOnly(query.healths, hp) })
                   }
                 >
                   {hp}
@@ -139,7 +139,7 @@ export function FilterSheet({
                   aria-pressed={selected}
                   className={`chip chip--button${selected ? ' chip--selected' : ''}`}
                   onClick={() =>
-                    setQuery({ abilityCounts: toggleInList(query.abilityCounts, n) })
+                    setQuery({ abilityCounts: selectOnly(query.abilityCounts, n) })
                   }
                 >
                   {n}

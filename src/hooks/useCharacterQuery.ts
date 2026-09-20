@@ -77,3 +77,12 @@ export function useCharacterQuery(): {
 export function toggleInList<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
+
+/**
+ * Radio-style selection for the single-choice filters: picking a value replaces
+ * whatever was selected, and picking the selected one again clears the filter.
+ * Still an array so the URL format and the OR-semantics filtering stay as-is.
+ */
+export function selectOnly<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? [] : [value]
+}
