@@ -190,7 +190,7 @@ export const wei: Character[] = [
         name: '[Ability]',
         description:
           'Once per turn, during your action phase, you can points duel another player with more health than you.\n' +
-          'If you win, then that player instantly deals 1 damage to another player within their attack range\n' +
+          'If you win, then that player instantly deals 1 damage to another player of your choosing within their attack range\n' +
           'If you lose, then that player deals 1 damage to you',
         tags: ['points duel']
       },
