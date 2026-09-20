@@ -6,7 +6,7 @@ import { emptyQuery } from '../lib/query'
 
 // An unrecognised value falls back to the default, so links shared before a
 // sort was renamed still open — just not on the sort they were shared with.
-const SORTS: SortKey[] = ['name', 'color']
+const SORTS: SortKey[] = ['pack', 'name', 'color']
 const GROUPS: GroupKey[] = ['none', 'kingdom', 'health']
 const GENDERS: Gender[] = ['M', 'F']
 

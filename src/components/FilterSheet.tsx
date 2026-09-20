@@ -14,6 +14,7 @@ import type { CharacterQuery, GroupKey, SortKey } from '../lib/query'
 import { activeFilterCount } from '../lib/query'
 
 const sortOptions: { key: SortKey; label: string }[] = [
+  { key: 'pack', label: 'Pack' },
   { key: 'name', label: 'Name' },
   { key: 'color', label: 'Colour' },
 ]

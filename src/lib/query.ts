@@ -1,6 +1,7 @@
 import type { Character, Gender } from '../types/character'
 import { kingdomName } from '../data/kingdoms'
 import { compareCardColors } from './colors'
+import { cardPackRank } from '../data/cardPacks'
 import {
   abilityCounts,
   allAbilities,
@@ -8,7 +9,7 @@ import {
   characterGenders,
 } from './versions'
 
-export type SortKey = 'name' | 'color'
+export type SortKey = 'pack' | 'name' | 'color'
 export type GroupKey = 'none' | 'kingdom' | 'health'
 
 /** Everything the list page needs to derive its contents. Serialized into the URL. */
@@ -43,7 +44,7 @@ export const emptyQuery: CharacterQuery = {
   abilityCounts: [],
   cardPacks: [],
   genders: [],
-  sort: 'name',
+  sort: 'pack',
   group: 'kingdom',
 }
 
@@ -126,10 +127,23 @@ export function filterCharacters(
   })
 }
 
+/**
+ * Earliest pack a character appears in. Taken across every printing rather than
+ * off the base card alone: a card first seen as a variant in an expansion has
+ * no base pack, and sorting it with the packless stragglers would hide it at
+ * the end of the list.
+ */
+function packRank(character: Character): number {
+  const ranks = cardPacks(character).map(cardPackRank)
+  return ranks.length ? Math.min(...ranks) : cardPackRank(undefined)
+}
+
 export function sortCharacters(source: Character[], sort: SortKey): Character[] {
   const byName = (a: Character, b: Character) => a.name.localeCompare(b.name)
   const copy = [...source]
   switch (sort) {
+    case 'pack':
+      return copy.sort((a, b) => packRank(a) - packRank(b) || byName(a, b))
     case 'color':
       // Always the base card's art, even for a character whose variants have
       // wildly different colouring — the list shows version 0, so sorting on
