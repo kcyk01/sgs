@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import type { Gender } from '../types/character'
 import type { CharacterQuery, GroupKey, SortKey } from '../lib/query'
 import { emptyQuery } from '../lib/query'
 
@@ -7,6 +8,7 @@ import { emptyQuery } from '../lib/query'
 // sort was renamed still open — just not on the sort they were shared with.
 const SORTS: SortKey[] = ['name', 'color']
 const GROUPS: GroupKey[] = ['none', 'kingdom', 'health']
+const GENDERS: Gender[] = ['M', 'F']
 
 function parseList(value: string | null): string[] {
   return value ? value.split(',').filter(Boolean) : []
@@ -43,6 +45,12 @@ export function useCharacterQuery(): {
       tags: parseList(params.get('tag')),
       healths: parseNumberList(params.get('hp')),
       abilityCounts: parseNumberList(params.get('abilities')),
+      cardPacks: parseList(params.get('pack')),
+      // Unlike the free-string filters, this one is a closed set — drop
+      // anything that isn't a real gender rather than filtering to nothing.
+      genders: parseList(params.get('gender')).filter((g): g is Gender =>
+        GENDERS.includes(g as Gender),
+      ),
       sort: sort && SORTS.includes(sort) ? sort : emptyQuery.sort,
       group: group && GROUPS.includes(group) ? group : emptyQuery.group,
     }
@@ -58,6 +66,8 @@ export function useCharacterQuery(): {
       if (next.healths.length) sp.set('hp', next.healths.join(','))
       if (next.abilityCounts.length)
         sp.set('abilities', next.abilityCounts.join(','))
+      if (next.cardPacks.length) sp.set('pack', next.cardPacks.join(','))
+      if (next.genders.length) sp.set('gender', next.genders.join(','))
       if (next.sort !== emptyQuery.sort) sp.set('sort', next.sort)
       if (next.group !== emptyQuery.group) sp.set('group', next.group)
       // replace: typing in the search box should not fill up the history stack.

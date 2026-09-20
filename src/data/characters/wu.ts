@@ -11,6 +11,8 @@ export const wu: Character[] = [
     title: 'Peach King',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -31,6 +33,8 @@ export const wu: Character[] = [
     title: 'Black Cards are Bridge',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -38,6 +42,7 @@ export const wu: Character[] = [
           'During your action phase, you can use any of your black-suited card as [Bridge]',
       }
     ],
+    searchTerms: 'abs'
   },
   {
     id: 'lu-meng',
@@ -45,6 +50,8 @@ export const wu: Character[] = [
     title: 'Camper',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -59,6 +66,8 @@ export const wu: Character[] = [
     title: 'Cutter',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -73,6 +82,8 @@ export const wu: Character[] = [
     title: 'Guessing Game',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -93,6 +104,8 @@ export const wu: Character[] = [
     title: 'Diamonds are Skip Action Phase',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'base',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -112,6 +125,8 @@ export const wu: Character[] = [
     title: 'No Steal or Skip Action Phase',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -132,6 +147,8 @@ export const wu: Character[] = [
     title: 'Jugs',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'base',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -152,6 +169,8 @@ export const wu: Character[] = [
     title: 'Spades are Hearts',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'wind 風',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -173,6 +192,8 @@ export const wu: Character[] = [
     title: 'Zombie',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'wind 風',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -191,6 +212,8 @@ export const wu: Character[] = [
     name: 'Tai Shi Ci',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -207,6 +230,8 @@ export const wu: Character[] = [
     name: 'Sun Jian',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'forest 林',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -224,6 +249,8 @@ export const wu: Character[] = [
     title: 'Hand Swap Guy',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'forest 林',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -244,6 +271,8 @@ export const wu: Character[] = [
     title: 'Red Attack / Duel King',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'mountain 山',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -281,6 +310,8 @@ export const wu: Character[] = [
     title: 'Discard Card Salvager',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'mountain 山',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -299,6 +330,8 @@ export const wu: Character[] = [
     name: 'Ling Tong',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -306,6 +339,7 @@ export const wu: Character[] = [
           'Every instance Equipment is moved from your equipped Equipment area, or whenever you discard 2 or more cards during your discard phase, you can discard up to 2 cards in total from other players (not limited to the same player)',
       }
     ],
+    searchTerms: 'abs'
   },
   {
     id: 'wu-guotai',
@@ -313,6 +347,8 @@ export const wu: Character[] = [
     title: 'Equipment Swapper',
     kingdom: 'wu',
     health: 3,
+    cardPack: 'OKF 2011 將',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -333,6 +369,8 @@ export const wu: Character[] = [
     name: 'Xu Sheng',
     kingdom: 'wu',
     health: 4,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',

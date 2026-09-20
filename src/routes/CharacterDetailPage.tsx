@@ -4,6 +4,7 @@ import { AppHeader } from '../components/AppHeader'
 import { CardArtPager } from '../components/CardArtPager'
 import { CardLightbox } from '../components/CardLightbox'
 import { FavouriteButton } from '../components/FavouriteButton'
+import { GenderChip } from '../components/GenderChip'
 import { HealthBadge } from '../components/HealthBadge'
 import { KingdomChip } from '../components/KingdomChip'
 import { RulesText } from '../components/RulesText'
@@ -88,6 +89,13 @@ export default function CharacterDetailPage() {
             <Link to={`/?kingdom=${version.kingdom}`}>
               <KingdomChip id={version.kingdom} />
             </Link>
+            {/* Optional — most of the roster will carry one, but a card with
+                no gender recorded shows nothing rather than a guess. */}
+            {version.gender && (
+              <Link to={`/?gender=${version.gender}`}>
+                <GenderChip gender={version.gender} />
+              </Link>
+            )}
           </div>
         </div>
 

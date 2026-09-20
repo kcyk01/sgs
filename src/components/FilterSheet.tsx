@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { Icon } from './Icon'
-import { abilityCountValues, allAbilityTags, healthValues } from '../data/characters'
+import {
+  abilityCountValues,
+  allAbilityTags,
+  cardPackValues,
+  genderValues,
+  healthValues,
+} from '../data/characters'
+import { genderInfo, genderName } from '../data/genders'
 import { kingdoms } from '../data/kingdoms'
 import { selectOnly, toggleInList } from '../hooks/useCharacterQuery'
 import type { CharacterQuery, GroupKey, SortKey } from '../lib/query'
@@ -148,6 +155,64 @@ export function FilterSheet({
             })}
           </div>
         </div>
+
+        {genderValues.length > 0 && (
+          <div className="sheet__section">
+            <span className="sheet__label">Gender</span>
+            <div className="chip-row">
+              {genderValues.map((gender) => {
+                const selected = query.genders.includes(gender)
+                const info = genderInfo(gender)
+                return (
+                  <button
+                    key={gender}
+                    type="button"
+                    aria-pressed={selected}
+                    className={`chip chip--button${selected ? ' chip--selected' : ''}`}
+                    onClick={() =>
+                      setQuery({ genders: selectOnly(query.genders, gender) })
+                    }
+                  >
+                    {/* Colour on the glyph only, not the whole chip: the label
+                        has to stay legible, and it needs to turn accent-
+                        coloured with the rest of the chip when selected.
+                        Plays the same role the kingdom chips' dot does. */}
+                    {info && (
+                      <span className="chip__glyph" style={{ color: info.color }}>
+                        <Icon name={info.icon} size={14} />
+                      </span>
+                    )}
+                    {genderName(gender)}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {cardPackValues.length > 0 && (
+          <div className="sheet__section">
+            <span className="sheet__label">Card pack</span>
+            <div className="chip-row">
+              {cardPackValues.map((pack) => {
+                const selected = query.cardPacks.includes(pack)
+                return (
+                  <button
+                    key={pack}
+                    type="button"
+                    aria-pressed={selected}
+                    className={`chip chip--button${selected ? ' chip--selected' : ''}`}
+                    onClick={() =>
+                      setQuery({ cardPacks: selectOnly(query.cardPacks, pack) })
+                    }
+                  >
+                    {pack}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {allAbilityTags.length > 0 && (
           <div className="sheet__section">

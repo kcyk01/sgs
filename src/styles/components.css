@@ -105,11 +105,24 @@
   white-space: nowrap;
 }
 
+/* Icon standing in for `chip__dot` — same job, but a shape rather than a
+   colour swatch. flex so the svg sits on the text's centre line. */
+.chip__glyph {
+  display: inline-flex;
+  flex: none;
+}
+
 .chip__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex: none;
+}
+
+/* Glyph-only chip: square-ish padding so a single icon doesn't sit in a pill
+   sized for text. The colour is set inline by the caller. */
+.chip--icon {
+  padding: 6px;
 }
 
 /* Toggleable chip used inside the filter sheet — 36px tall keeps rows tappable. */

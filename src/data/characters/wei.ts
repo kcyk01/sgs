@@ -11,6 +11,8 @@ export const wei: Character[] = [
     title: 'The Blue King',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -31,6 +33,8 @@ export const wei: Character[] = [
     title: 'Judgement Replacing',
     kingdom: 'wei',
     health: 3,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -51,6 +55,8 @@ export const wei: Character[] = [
     title: 'Judgement Retaliation',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -67,6 +73,8 @@ export const wei: Character[] = [
     title: 'Steal Instead of Draw',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -81,6 +89,8 @@ export const wei: Character[] = [
     title: 'Extra Attack and Duel Damage',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -95,6 +105,8 @@ export const wei: Character[] = [
     title: 'Keeps Judgements / Cards on Taking Damage',
     kingdom: 'wei',
     health: 3,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -115,6 +127,8 @@ export const wei: Character[] = [
     title: 'Black Cards are Dodge',
     kingdom: 'wei',
     health: 3,
+    cardPack: 'base',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -136,6 +150,8 @@ export const wei: Character[] = [
     title: 'Phase Skip for Attacks',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'wind 風',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -153,6 +169,8 @@ export const wei: Character[] = [
     title: 'Flip for Cards',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'wind 風',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -171,6 +189,8 @@ export const wei: Character[] = [
     title: 'Cut or Weapon to Damage',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -185,6 +205,8 @@ export const wei: Character[] = [
     title: 'Refill Hand Cards',
     kingdom: 'wei',
     health: 3,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -207,6 +229,8 @@ export const wei: Character[] = [
     title: 'Skip Drawing Phase',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'forest 林',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -222,6 +246,8 @@ export const wei: Character[] = [
     title: 'Flipping Blue King',
     kingdom: 'wei',
     health: 3,
+    cardPack: 'forest 林',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -248,6 +274,8 @@ export const wei: Character[] = [
     title: 'Phase Skipper',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'mountain 山',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -266,6 +294,8 @@ export const wei: Character[] = [
     title: 'Farms',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'mountain 山',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -289,6 +319,8 @@ export const wei: Character[] = [
     title: 'Clubs and Wine',
     kingdom: 'wei',
     health: 3,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -311,6 +343,8 @@ export const wei: Character[] = [
     title: 'Black Attacks Useless',
     kingdom: 'wei',
     health: 4,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -326,6 +360,8 @@ export const wei: Character[] = [
     title: 'All Damage is Self-Cut',
     kingdom: 'wei',
     health: 3,
+    cardPack: 'OKF 2011 將',
+    gender: 'F',
     abilities: [
       {
         name: '[Enforced Ability]',

@@ -1,4 +1,4 @@
-import type { Ability, Character } from '../types/character'
+import type { Ability, Character, Gender } from '../types/character'
 
 /**
  * A single swipeable version of a character, flattened so consumers never have
@@ -47,6 +47,38 @@ export function abilityCounts(character: Character): number[] {
   return [
     ...new Set(characterVersions(character).map((v) => v.abilities.length)),
   ].sort((a, b) => a - b)
+}
+
+/**
+ * The distinct card packs across every printing of a character.
+ *
+ * Per *version*, like `abilityCounts`: a variant can be reprinted in a pack of
+ * its own, and holding that card should lead back to this character. Versions
+ * without a pack contribute nothing.
+ */
+export function cardPacks(character: Character): string[] {
+  return [
+    ...new Set(
+      characterVersions(character)
+        .map((v) => v.cardPack)
+        .filter((p): p is string => Boolean(p)),
+    ),
+  ]
+}
+
+/**
+ * The distinct genders across every printing of a character — normally one, but
+ * a reworked version is free to differ. Versions without a gender contribute
+ * nothing.
+ */
+export function characterGenders(character: Character): Gender[] {
+  return [
+    ...new Set(
+      characterVersions(character)
+        .map((v) => v.gender)
+        .filter((g): g is Gender => Boolean(g)),
+    ),
+  ]
 }
 
 /**

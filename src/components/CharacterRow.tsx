@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Character } from '../types/character'
 import { CardThumb } from './CardThumb'
+import { GenderChip } from './GenderChip'
 import { HealthBadge } from './HealthBadge'
 import { KingdomChip } from './KingdomChip'
 
@@ -17,6 +18,10 @@ export function CharacterRow({ character }: { character: Character }) {
         <div className="card-row__meta">
           <HealthBadge health={character.health} />
           <KingdomChip id={character.kingdom} />
+          {/* Same order as the detail page, and same silence when a card has
+              no gender recorded. Not a link here — the whole row already is
+              one, and a nested anchor would swallow the tap. */}
+          {character.gender && <GenderChip gender={character.gender} />}
         </div>
       </div>
     </Link>

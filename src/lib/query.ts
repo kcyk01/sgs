@@ -1,7 +1,12 @@
-import type { Character } from '../types/character'
+import type { Character, Gender } from '../types/character'
 import { kingdomName } from '../data/kingdoms'
 import { compareCardColors } from './colors'
-import { abilityCounts, allAbilities } from './versions'
+import {
+  abilityCounts,
+  allAbilities,
+  cardPacks,
+  characterGenders,
+} from './versions'
 
 export type SortKey = 'name' | 'color'
 export type GroupKey = 'none' | 'kingdom' | 'health'
@@ -18,6 +23,14 @@ export interface CharacterQuery {
    * "any"; otherwise OR semantics, like the rest.
    */
   abilityCounts: number[]
+  /**
+   * Selected booster packs. Empty means "any"; otherwise OR semantics. Stored
+   * as the pack name itself rather than a slug — there is no pack table to key
+   * into, the names come straight off the cards.
+   */
+  cardPacks: string[]
+  /** Selected genders. Empty means "any"; otherwise OR semantics. */
+  genders: Gender[]
   sort: SortKey
   group: GroupKey
 }
@@ -28,6 +41,8 @@ export const emptyQuery: CharacterQuery = {
   tags: [],
   healths: [],
   abilityCounts: [],
+  cardPacks: [],
+  genders: [],
   sort: 'name',
   group: 'kingdom',
 }
@@ -42,9 +57,10 @@ export function normalize(value: string): string {
 }
 
 /**
- * Free-text search across name, title, kingdom, and ability name + rules text.
- * Alternate versions are folded in — their names and abilities match the one
- * character that carries them, rather than appearing as separate results.
+ * Free-text search across name, title, kingdom, ability name + rules text, and
+ * the invisible `searchTerms` labels. Alternate versions are folded in — their
+ * names, abilities and terms match the one character that carries them, rather
+ * than appearing as separate results.
  */
 function matchesText(character: Character, needle: string): boolean {
   if (!needle) return true
@@ -53,7 +69,15 @@ function matchesText(character: Character, needle: string): boolean {
       character.name,
       character.title ?? '',
       kingdomName(character.kingdom),
-      ...(character.variants ?? []).flatMap((v) => [v.label, v.name ?? '', v.title ?? '']),
+      character.searchTerms ?? '',
+      ...(character.variants ?? []).flatMap((v) => [
+        v.label,
+        v.name ?? '',
+        v.title ?? '',
+        // Additive, not an override: a variant's art labels are extra ways in,
+        // and the base card's still describe a real printing.
+        v.searchTerms ?? '',
+      ]),
       ...allAbilities(character).flatMap((a) => [
         a.name,
         a.description,
@@ -71,7 +95,15 @@ export function filterCharacters(
   source: Character[],
   query: CharacterQuery,
 ): Character[] {
-  const { q, kingdoms, tags, healths, abilityCounts: counts } = query
+  const {
+    q,
+    kingdoms,
+    tags,
+    healths,
+    abilityCounts: counts,
+    cardPacks: packs,
+    genders,
+  } = query
   return source.filter((c) => {
     if (kingdoms.length && !kingdoms.includes(c.kingdom)) return false
     if (healths.length && !healths.includes(c.health)) return false
@@ -79,6 +111,11 @@ export function filterCharacters(
     // the same "a variant is a real card too" rule the tag filter and the
     // search box already follow.
     if (counts.length && !abilityCounts(c).some((n) => counts.includes(n)))
+      return false
+    // Same per-printing rule: a character counts as "in" a pack if any of its
+    // versions shipped in it.
+    if (packs.length && !cardPacks(c).some((p) => packs.includes(p))) return false
+    if (genders.length && !characterGenders(c).some((g) => genders.includes(g)))
       return false
     if (tags.length) {
       const own = new Set(allAbilities(c).flatMap((a) => a.tags ?? []))
@@ -145,6 +182,8 @@ export function activeFilterCount(query: CharacterQuery): number {
     query.kingdoms.length +
     query.tags.length +
     query.healths.length +
-    query.abilityCounts.length
+    query.abilityCounts.length +
+    query.cardPacks.length +
+    query.genders.length
   )
 }

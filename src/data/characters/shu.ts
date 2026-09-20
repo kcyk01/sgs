@@ -11,6 +11,8 @@ export const shu: Character[] = [
     title: 'The Red King',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -35,6 +37,8 @@ export const shu: Character[] = [
     title: 'Red Cards are Attack',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -49,6 +53,8 @@ export const shu: Character[] = [
     title: 'Built-in Crossbow Guy',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -63,6 +69,8 @@ export const shu: Character[] = [
     title: 'Old Steve',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -83,6 +91,8 @@ export const shu: Character[] = [
     title: 'Attack ⇄ Dodge',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -97,6 +107,8 @@ export const shu: Character[] = [
     title: 'Judgement for Forced Damage',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -118,6 +130,8 @@ export const shu: Character[] = [
     title: 'Tool Card Chick',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'base',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -140,6 +154,8 @@ export const shu: Character[] = [
     title: 'Conditional Forced Damage',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'wind 風',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -156,6 +172,8 @@ export const shu: Character[] = [
     title: 'Vampire / Bloodsucker',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'wind 風',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -171,6 +189,8 @@ export const shu: Character[] = [
     title: 'Second Life',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -191,6 +211,8 @@ export const shu: Character[] = [
     title: 'Young Steve',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -216,6 +238,8 @@ export const shu: Character[] = [
     title: 'Elephants King',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'forest 林',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -238,6 +262,8 @@ export const shu: Character[] = [
     title: 'Elephants Queen',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'forest 林',
+    gender: 'F',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -260,6 +286,8 @@ export const shu: Character[] = [
     title: 'Attack Me!',
     kingdom: 'shu',
     health: 4,
+    cardPack: 'mountain 山',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -286,6 +314,8 @@ export const shu: Character[] = [
     title: 'Young Red King',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'mountain 山',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -315,6 +345,8 @@ export const shu: Character[] = [
     name: 'Fa Zheng',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -336,6 +368,8 @@ export const shu: Character[] = [
     title: 'Lose All Cards on Kill',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -357,6 +391,8 @@ export const shu: Character[] = [
     name: 'Xu Shu',
     kingdom: 'shu',
     health: 3,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',

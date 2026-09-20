@@ -11,6 +11,8 @@ export const qun: Character[] = [
     title: 'Healer',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -31,6 +33,8 @@ export const qun: Character[] = [
     name: 'Lu Bu',
     kingdom: 'qun',
     health: 4,
+    cardPack: 'base',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -47,6 +51,8 @@ export const qun: Character[] = [
     title: 'Makes Two Guys Duel',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'base',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -71,6 +77,8 @@ export const qun: Character[] = [
     title: 'Lightning Guy',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'wind 風',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -102,6 +110,8 @@ export const qun: Character[] = [
     title: 'Liar',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'wind 風',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -125,6 +135,8 @@ export const qun: Character[] = [
     title: 'Arrows',
     kingdom: 'qun',
     health: 4,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -145,6 +157,8 @@ export const qun: Character[] = [
     title: 'Dueler',
     kingdom: 'qun',
     health: 4,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -161,6 +175,8 @@ export const qun: Character[] = [
     title: 'Dodge and Get Bridged',
     kingdom: 'qun',
     health: 4,
+    cardPack: 'fire 火',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -180,6 +196,8 @@ export const qun: Character[] = [
     name: 'Dong Zhuo',
     kingdom: 'qun',
     health: 8,
+    cardPack: 'forest 林',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -215,6 +233,8 @@ export const qun: Character[] = [
     title: 'No One Else Can Peach',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'forest 林',
+    gender: 'M',
     abilities: [
       {
         name: '[Enforced Ability]',
@@ -244,6 +264,8 @@ export const qun: Character[] = [
     title: 'Shapeshifter',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'mountain 山',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -266,6 +288,8 @@ export const qun: Character[] = [
     title: 'Lose Abilities on Kill',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'mountain 山',
+    gender: 'F',
     abilities: [
       {
         name: '[Ability]',
@@ -290,6 +314,8 @@ export const qun: Character[] = [
     name: 'Chen Gong',
     kingdom: 'qun',
     health: 3,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',
@@ -311,6 +337,8 @@ export const qun: Character[] = [
     name: 'Gao Shun',
     kingdom: 'qun',
     health: 4,
+    cardPack: 'OKF 2011 將',
+    gender: 'M',
     abilities: [
       {
         name: '[Ability]',

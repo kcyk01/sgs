@@ -14,6 +14,13 @@ export interface Kingdom {
   description?: string
 }
 
+/**
+ * A character's gender. A closed union rather than a free string so a typo in
+ * the data is a compile error instead of a filter chip nobody can match — see
+ * `genders` in src/data/genders.ts for the display labels.
+ */
+export type Gender = 'M' | 'F'
+
 export interface Ability {
   name: string
   /**
@@ -56,6 +63,8 @@ export interface Character {
   /** Kingdom.id */
   kingdom: string
   health: number
+  /** Omit when unknown or not applicable; the filter then never matches it. */
+  gender?: Gender
   abilities: Ability[]
   /**
    * Override the conventional image path. Leave undefined to use /cards/<id>.webp
@@ -64,6 +73,23 @@ export interface Character {
   image?: string
   /** Long-form lore / designer notes. Optional. */
   flavor?: string
+  /**
+   * The booster/expansion pack this printing comes from, e.g. "Wind". Omit for
+   * cards in the base set — the pack filter only offers packs that appear in
+   * the data, so an unset value simply never matches one.
+   */
+  cardPack?: string
+  /**
+   * Extra words the search box should match on, space separated. Never
+   * rendered — this is purely a hook for things a player can see on the card
+   * but that no other field names: art details ("hat spear horse tiger"),
+   * nicknames, romanization variants, the Chinese name.
+   *
+   * Matching is the same as everywhere else: lowercased and diacritic-stripped,
+   * substring per term, so "hat" also matches "hatchet". Keep entries short and
+   * prefer several specific words over a sentence.
+   */
+  searchTerms?: string
   /**
    * The class label this card maps to in a trained model's output.
    *
@@ -115,9 +141,18 @@ export interface CharacterVariant {
   title?: string
   kingdom?: string
   health?: number
+  gender?: Gender
   /** Replaces the base ability list wholesale — variants rarely share abilities. */
   abilities?: Ability[]
   image?: string
   flavor?: string
+  /** Overrides the base pack when this printing shipped in a different one. */
+  cardPack?: string
+  /**
+   * Extra search words for *this* printing's art — added to the base card's
+   * rather than replacing them, since a search hit on any version has to lead
+   * back to the one character either way.
+   */
+  searchTerms?: string
   modelLabel?: string
 }

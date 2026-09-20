@@ -1,5 +1,13 @@
 import type { Character } from '../../types/character'
-import { abilityCounts, allAbilities, characterVersions } from '../../lib/versions'
+import type { Gender } from '../../types/character'
+import {
+  abilityCounts,
+  allAbilities,
+  cardPacks,
+  characterGenders,
+  characterVersions,
+} from '../../lib/versions'
+import { genders } from '../genders'
 import { qun } from './qun'
 import { shu } from './shu'
 import { wei } from './wei'
@@ -54,6 +62,24 @@ export const healthValues: number[] = [
 export const abilityCountValues: number[] = [
   ...new Set(characters.flatMap((c) => abilityCounts(c))),
 ].sort((a, b) => a - b)
+
+/**
+ * The card packs present in the data, alphabetically. Same reasoning as
+ * `healthValues`: the filter offers only packs something can be filtered to.
+ * Empty while no card carries a `cardPack`, which hides the section entirely.
+ */
+export const cardPackValues: string[] = [
+  ...new Set(characters.flatMap((c) => cardPacks(c))),
+].sort((a, b) => a.localeCompare(b))
+
+/**
+ * The genders present in the data, in `genders` declaration order. Same
+ * reasoning as `healthValues` — and while no card carries one, the list is
+ * empty and the filter section stays hidden.
+ */
+export const genderValues: Gender[] = genders
+  .map((g) => g.id)
+  .filter((id) => characters.some((c) => characterGenders(c).includes(id)))
 
 if (import.meta.env.DEV) {
   // Now that ids are spread across four files, a collision between kingdoms is
