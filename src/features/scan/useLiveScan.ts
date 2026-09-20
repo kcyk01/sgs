@@ -8,7 +8,12 @@ import {
 import type { CardMatch, CardRecognizer, ScanDebug } from './types'
 
 /**
- * Live scan mode: identify a card off the camera stream, without a shutter.
+ * Live scanning: identify a card off the camera stream, without a shutter.
+ *
+ * Runs whenever the scan page is framing. It does not replace the shutter —
+ * `ScanPage` keeps Capture available throughout, for the card this never settles
+ * on — so the bar here is not "better than nothing", it is "trustworthy enough
+ * to assert a result the user did not ask for".
  *
  * This exists for one reason, and it is not speed. `confidenceOf` in
  * `pipeline/match.ts` is a softmax over the top-5 — it measures separation from

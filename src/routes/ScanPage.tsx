@@ -21,18 +21,20 @@ import type {CardArtSource} from '../lib/images'
 /**
  * Camera scanner: frame the card, take a still, identify it.
  *
- * A shutter by default, because freezing one frame the user chose is steady and
- * easy to reason about: what got analysed is exactly what they can see, the
- * ranking is computed once instead of reshuffling under them, and the one-shot
- * analysis affords a ~200 ms budget spent on capturing at higher resolution —
- * worth about 7 points of top-5 recall on the test photos.
+ * Two ways in, one result screen. The page identifies the card off the live
+ * stream on its own, and the Capture button is always there for when it will
+ * not converge — a card at an angle it keeps changing its mind about, or a user
+ * who would rather just take the picture. Neither is a mode to be chosen: both
+ * end in the same frozen still and the same ranked list, and nothing
+ * auto-navigates.
  *
- * Live Mode, behind the toggle beside Debug Mode, is the experiment alongside
- * it. Its case is not speed and not convenience: sampling the stream is the only
- * way to get *several independent looks* at one card, so it accepts on a vote
- * across a window of frames rather than on any single one — see
- * ../features/scan/useLiveScan.ts. Both modes end in the same frozen still and
- * the same result list; nothing auto-navigates.
+ * Live scanning is not there for speed. Its case is that sampling the stream is
+ * the only way to get *several independent looks* at one card, so it accepts on
+ * a vote across a window of frames rather than on any single one — see
+ * ../features/scan/useLiveScan.ts. The shutter's case is the opposite and just
+ * as real: one frame a human judged to be in focus, analysed on a ~200 ms budget
+ * rather than the ~30 ms a sampling tick can afford, at higher resolution —
+ * worth about 7 points of top-5 recall on the test photos.
  *
  * Recognition sits behind the `CardRecognizer` interface and is loaded lazily, so
  * this page is unaffected by how a card is actually identified — see
@@ -49,6 +51,23 @@ interface Suggestion {
   printing: CardArtSource & { name: string }
 }
 
+/**
+ * The card a match names, or null when it names one outside the roster.
+ *
+ * Shared by the result rows and the live preview so both show the same art for
+ * the same match — resolving the printing through `characterVersions` rather
+ * than building `{ id, name }` by hand keeps any per-version `image` override
+ * working, and doing it in one place keeps the preview honest about what the
+ * accepted row will look like.
+ */
+function resolveSuggestion(match: CardMatch): Suggestion | null {
+  const character = characterById.get(match.characterId)
+  if (!character) return null
+  const versions = characterVersions(character)
+  const printing = versions.find((v) => v.id === match.artId) ?? versions[0]
+  return {match, character, printing}
+}
+
 export default function ScanPage() {
   const {videoRef, state, error, start, stop} = useCamera()
   const recognizerRef = useRef<CardRecognizer | null>(null)
@@ -61,9 +80,6 @@ export default function ScanPage() {
   // tool for building `test-images/`, not a preference.
   const [debug, setDebug] = useState(false)
   const [artifacts, setArtifacts] = useState<ScanDebug | null>(null)
-  // Live Mode: sample the stream and accept on a vote instead of waiting for a
-  // shutter press. Also an experiment, also not persisted.
-  const [live, setLive] = useState(false)
 
   // Load (or discover the absence of) the recognizer once.
   useEffect(() => {
@@ -172,10 +188,12 @@ export default function ScanPage() {
     [freeze],
   )
 
-  // Only while there is a stream to sample, a framing screen to sample it for,
-  // and a recognizer to sample it with. Shared with the hint below, so the page
-  // cannot claim to be looking during the moment before the recognizer loads.
-  const scanning = live && state === 'live' && phase === 'framing' && status === 'ready'
+  // Live scanning runs whenever there is a stream to sample, a framing screen to
+  // sample it for, and a recognizer to sample it with — there is no switch. The
+  // Capture button below is the manual path, not a separate mode, so nothing is
+  // taken away by leaving this on. Shared with the hint, so the page cannot
+  // claim to be looking during the moment before the recognizer loads.
+  const scanning = state === 'live' && phase === 'framing' && status === 'ready'
 
   const {leading} = useLiveScan({
     video: videoRef,
@@ -205,17 +223,16 @@ export default function ScanPage() {
   // printing through `characterVersions` rather than building `{ id, name }` by
   // hand keeps any per-version `image` override working.
   const suggestions: Suggestion[] = matches.flatMap((match) => {
-    const character = characterById.get(match.characterId)
-    if (!character) return []
-    const versions = characterVersions(character)
-    const printing = versions.find((v) => v.id === match.artId) ?? versions[0]
-    return [{match, character, printing}]
+    const suggestion = resolveSuggestion(match)
+    return suggestion ? [suggestion] : []
   })
 
-  // Live mode's running best guess, named rather than scored: a percentage that
-  // moves every tick invites the user to wait for a number instead of holding
-  // the card still, which is the only thing that actually helps.
-  const leadingName = leading ? characterById.get(leading.characterId)?.name : undefined
+  // The running best guess, shown as art and a name but no percentage: a number
+  // that moves every tick invites the user to wait for it to look good instead
+  // of holding the card still, which is the only thing that actually helps. The
+  // art is the point — it is the one part of a guess a user can check at a
+  // glance, and the same 52px thumb they will confirm on a second later.
+  const guess = leading ? resolveSuggestion(leading) : null
 
   const confident =
     suggestions.length > 0 && suggestions[0].match.confidence >= MATCH_THRESHOLD
@@ -241,20 +258,6 @@ export default function ScanPage() {
             </span>
           </label>
 
-          {/* Beside Debug Mode because it is the same kind of switch: an
-              experiment that changes what a capture produces. */}
-          <label className="scan__toggle">
-            <input
-              type="checkbox"
-              checked={live}
-              onChange={(e) => setLive(e.target.checked)}
-            />
-            <span>Live Mode</span>
-            <span className="muted scan__toggle-hint">
-              identify without pressing Capture
-            </span>
-          </label>
-
           <div className="scan__viewport">
             <video
               ref={videoRef}
@@ -271,7 +274,7 @@ export default function ScanPage() {
                 {state === 'starting'
                   ? 'Starting camera…'
                   : (error ??
-                    'Line a card up inside the guide, then take a picture of it.')}
+                    'Line a card up inside the guide and hold still — it is identified automatically, or press Capture.')}
               </p>
             )}
           </div>
@@ -291,11 +294,27 @@ export default function ScanPage() {
               every ~450 ms, and announcing each tick would bury the one
               announcement that matters. The result is what gets read out. */}
           {scanning && (
-            <p className="muted" style={{fontSize: '0.875rem'}}>
-              {leadingName
-                ? `Looking for a card… best guess so far: ${leadingName}`
-                : 'Looking for a card… hold it steady inside the guide.'}
-            </p>
+            <div className="scan__guess">
+              {guess && (
+                <CardThumb
+                  // Keyed on the printing, so one card's missing art cannot
+                  // leave its initials placeholder showing for the next guess.
+                  key={guess.printing.id}
+                  card={guess.printing}
+                  className="card-row__thumb"
+                />
+              )}
+              <p className="muted scan__guess-text">
+                {guess ? (
+                  <>
+                    Looking for a card… best guess so far:{' '}
+                    <strong>{guess.character.name}</strong>
+                  </>
+                ) : (
+                  'Looking for a card… hold it steady inside the guide.'
+                )}
+              </p>
+            </div>
           )}
 
           {state === 'live' && phase === 'framing' && (

@@ -4,21 +4,24 @@ Line a character card up in the guide, take a picture of it, get the card page.
 Runs entirely on the client, with no model weights, no inference runtime and no
 network request.
 
-**The shutter is the default**, and the reasons still hold: a still the user
-chose is steady, is easy to reason about — what got analysed is exactly what they
-can see — the ranking is computed once instead of reshuffling under them, and a
-one-shot analysis affords a ~200 ms budget rather than the ~10 ms a 4 fps loop
-could pay for.
+**Live scanning is on whenever the camera is, and the shutter is always
+available.** These are not modes to be chosen between; there is no switch. The
+page samples the stream and identifies the card on its own, and the Capture
+button is there for when it will not converge. Both paths end in the same frozen
+still and the same ranked list, and nothing auto-navigates.
 
-**Live Mode is an experiment beside it**, behind a toggle next to Debug Mode, and
-its justification is *temporal voting* rather than speed. Sampling the stream is
-the only way to get several independent looks at one card, which is strictly more
+Live scanning's justification is *temporal voting*, not speed. Sampling is the
+only way to get several independent looks at one card, which is strictly more
 evidence than one good frame — so it accepts nothing until one card has led 3 of
 the last 4 sampled frames with mean confidence over 0.75, ~1.5-2 s of holding
-still. It then freezes the frame, stops the camera and shows the same result list
-the shutter does; nothing auto-navigates. Accepting on a *single* sampled frame
-would be worse than the shutter, not better, and the vote is the whole point —
-see `useLiveScan.ts`.
+still. Accepting on a *single* sampled frame would be worse than the shutter, not
+better, and the vote is the whole point — see `useLiveScan.ts`.
+
+The shutter's case is the opposite and just as real, which is why it stays: one
+frame a human judged to be in focus, analysed on a ~200 ms budget rather than the
+~30 ms a tick can afford, at higher resolution — worth about 7 points of top-5
+recall on the test photos. What got analysed is also exactly what the user can
+see, which no sampled frame can promise.
 
 ## How it works
 
@@ -48,7 +51,7 @@ of a keypoint search, which is the entire reason this needs no OpenCV.js.
 | `types.ts` | `CardRecognizer` interface + `CardMatch` result shape |
 | `recognizer.ts` | Single load point, behind a dynamic `import()` |
 | `useCamera.ts` | `getUserMedia` lifecycle (rear camera, cleanup, permissions) |
-| `useLiveScan.ts` | Live Mode: sampling loop + `tallyVotes` accept rule |
+| `useLiveScan.ts` | Live scanning: sampling loop + `tallyVotes` accept rule |
 | `model/frame.ts` | DOM in: video -> pixels, and reticle geometry |
 | `model/debugImage.ts` | DOM out: intermediates -> canvas -> downloadable PNG |
 | `model/localRecognizer.ts` | Wires the pipeline to `CardRecognizer` |
@@ -196,10 +199,10 @@ Every step is designed to be replaced independently.
   needs them.
 - **Secure context.** `getUserMedia` needs https or localhost. For phone testing:
   `npm run dev -- --host` plus a tunnel, or serve `dist/` over https.
-- **One capture, one analysis — except under Live Mode.** The shutter calls
-  `recognize` once per press, on a frame the user chose. Live Mode is the one
-  sampling loop, and it exists *for* the temporal vote rather than in spite of
-  it: `tallyVotes` in `useLiveScan.ts` is the whole accept rule, kept pure and
+- **One capture, one analysis — and, alongside it, one vote.** The shutter calls
+  `recognize` once per press, on a frame the user chose. The live loop runs
+  unconditionally while framing, and it exists *for* the temporal vote rather
+  than in spite of it: `tallyVotes` in `useLiveScan.ts` is the whole accept rule, kept pure and
   exported so it can be checked without a camera. `confidenceOf` measures
   separation from the runner-up, not probability of correctness, so no number off
   one frame is allowed to accept — a live mode that trusted a single tick should
@@ -213,9 +216,9 @@ Every step is designed to be replaced independently.
   trust a number instead. The rows reuse `.card-row` and `CardThumb`, so a scan
   result looks like the same card it does everywhere else in the app. This is
   only legible because the ranking is settled before it is shown — once per
-  shutter press, or once per accepted vote in Live Mode. A list that reshuffled
-  on every sampled frame would be unreadable, which is why Live Mode shows
-  nothing but a running best-guess name until it accepts.
+  shutter press, or once per accepted vote. A list that reshuffled on every
+  sampled frame would be unreadable, which is why the live loop shows nothing but
+  a running best-guess name until it accepts.
 - **`CardMatch.artId` is separate from `characterId`.** The route goes to the
   character, but the thumbnail shows the *printing* that matched — someone
   holding an alternate art should see that art in the results, not the base

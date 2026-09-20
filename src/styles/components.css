@@ -1126,6 +1126,27 @@
   }
 }
 
+/* Live scanning's running best guess: the same 52px art as a result row, since
+   the art is the one part of a guess a user can actually check — a name and a
+   percentage ask them to trust a label instead. Deliberately not a `.card-row`:
+   this is not a result yet, and giving it the border and surface of one would
+   invite a tap that does nothing.
+
+   `min-height` reserves the thumb's space before there is a guess, so the
+   Capture button does not jump down the moment the first one arrives. */
+.scan__guess {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 72px;
+  margin-bottom: var(--sp-3);
+}
+
+.scan__guess-text {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
 .scan__debug {
   display: flex;
   flex-direction: column;
