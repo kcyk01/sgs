@@ -302,13 +302,13 @@ export const wei: Character[] = [
         description:
           'Every instance outside your turn you lose any of your cards, you can flip a judgement card.\n' +
           'If the judgement card is not heart-suited, you can place it on your character card as a "Farm".\n' +
-          'Every farm you have decreases distance calculation by 1',
+          'Every "Farm" you have decreases distance calculation by 1',
         tags: ['judgement']
       },
       {
         name: '[Awakening Ability]',
         description:
-          'At the beginning of your turn, if you have 3 or more farms, you awaken by decreasing your max health by 1 and you can now use each "Farm" as a [Steal]',
+          'At the beginning of your turn, if you have 3 or more "Farm", you awaken by decreasing your max health by 1 and you can now use each "Farm" as a [Steal]',
         tags: ['awakening']
       }
     ],
@@ -375,6 +375,94 @@ export const wei: Character[] = [
           'Outside of your discard phase, your hand card count will always be a minimum of X (X being the number of health down, limited to a max of 2)',
         tags: ['enforced']
       }
+    ],
+  },
+  {
+    id: 'cao-zhang',
+    name: 'Cao Zhang',
+    kingdom: 'wei',
+    health: 4,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'During your drawing phase you can choose to do one of the following:\n' +
+          '1. Draw 1 extra card, but you cannot play or use [Attack] for the rest of this turn\n' +
+          '2. Draw 1 less card, but your [Attack] has unlimited range, and you can use one additional [Attack] until the end of this turn',
+      },
+    ],
+  },
+  {
+    id: 'wang-yi',
+    name: 'Wang Yi',
+    kingdom: 'wei',
+    health: 3,
+    cardPack: 'OKF 2012 將',
+    gender: 'F',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'Whenever you are the target of another player\'s [Attack] or non-time-delayed Tool card, you can choose to lose 1 health to nullify the effect of that [Attack] or Tool card.\n' +
+          'You can then discard any card from that player',
+      },
+      {
+        name: '[Ability]',
+        description:
+          'At the end of your turn (after discard phase), if you are down health, you can draw X cards from the deck (X being the amount of health down).\n' +
+          'Afterwards, you must give away X cards to other players (can be to a single player or multiple different players)',
+      },
+    ],
+  },
+  {
+    id: 'xun-you',
+    name: 'Xun You',
+    kingdom: 'wei',
+    health: 3,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'Once per turn, during your action phase, you can use all of your hand cards (at least 1 hand card required) as any non-time-delayed Tool card',
+      },
+      {
+        name: '[Ability]',
+        description:
+          'Every instance you are damaged, you can choose to draw a card, then reveal your hand.\n' +
+          'If all your hand cards are of the same colour-suit, the person who damaged you must discard a hand card',
+      },
+    ],
+  },
+  {
+    id: 'zhong-hui',
+    name: 'Zhong Hui',
+    kingdom: 'wei',
+    health: 4,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'For every point of health damage you take, you can draw a card, then place any hand card on your character card as "Power".\n' +
+          'For every "Power" you have, the maximum number of hand cards you can hold increases by 1',
+      },
+      {
+        name: '[Awakening Ability]',
+        description:
+          'At the beginning of your turn (before judgement phase), if you have 3 or more "Power", you awaken by decreasing max health by 1, then either:\n' +
+          '1. Gain 1 unit of health\n' +
+          '2. Draw 2 cards\n' +
+          '---\n' +
+          'You then gain the following ability:\n' +
+          'Once per turn, you can discard a "Power" and make another player draw 2 cards.\n' +
+          'If that player now has more cards than you, they will take 1 unit of damage from you',
+        tags: ['awakening']
+      },
     ],
   },
 ]

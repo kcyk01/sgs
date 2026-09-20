@@ -380,4 +380,74 @@ export const wu: Character[] = [
       }
     ],
   },
+  {
+    id: 'bu-lianshi',
+    name: 'Bu Lianshi',
+    kingdom: 'wu',
+    health: 3,
+    cardPack: 'OKF 2012 將',
+    gender: 'F',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'Once per turn, during your action phase, you can pick two players with different number of hand cards.\n' +
+          'The player with less cards takes and reveals a card from the player with more cards.\n' +
+          'If the card is not spades-suited, you can draw a card.',
+      },
+      {
+        name: '[Ability]',
+        description:
+          'When you are killed, you can choose a player (not the one who killed you), and let them draw 3 cards and heal 1 life',
+        tags: ['heal', 'on-death']
+      }
+    ],
+  },
+  {
+    id: 'cheng-pu',
+    name: 'Cheng Pu',
+    kingdom: 'wu',
+    health: 4,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'You can always use your normal [Attack] as [Fire Attack]. If you do so and the [Fire Attack] does damage, you will lose 1 health.\n' +
+          'All of your [Fire Attack] can have one additional target',
+      },
+      {
+        name: '[Ability]',
+        description:
+          'At the end of your turn (after discard phase), if you have no "Alcohol" on your character card, you can place any number of [Attack] type cards on it as "Alcohol".\n' +
+          'When any player is on the brink of death, you can discard an "Alcohol" and it would have acted as the player on the brink of death having used a [Wine]',
+        tags: ['heal']
+      }
+    ],
+  },
+  {
+    id: 'han-dang',
+    name: 'Han Dang',
+    kingdom: 'wu',
+    health: 4,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'Once per turn, during your action phase, you can discard any card to make your attack range unlimited distance for the rest of your turn.\n' +
+          'If the discarded card is also an Equipment card, you can discard another player\'s card',
+      },
+      {
+        name: '[One-Time Use Ability]',
+        description:
+          'During your action phase, you can pick any player. Every other player that can target your selected player in their attack range must either:\n' +
+          '1. Discard a weapon card\n' +
+          '2. Let the selected player draw a card',
+        tags: ['one-time use']
+      }
+    ],
+  },
 ]

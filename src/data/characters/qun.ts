@@ -305,7 +305,7 @@ export const qun: Character[] = [
         name: '[Enforced Ability]',
         description:
           'The player who kills you loses all their abilities for the rest of the game',
-        tags: ['enforced']
+        tags: ['enforced', 'on-death']
       }
     ]
   },
@@ -355,5 +355,43 @@ export const qun: Character[] = [
         tags: ['enforced']
       }
     ]
-  }
+  },
+  {
+    id: 'hua-xiong',
+    name: 'Hua Xiong',
+    title: 'Worst Design Ever: Get Another Character',
+    kingdom: 'qun',
+    health: 6,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Enforced Ability]',
+        description:
+          'Every time you are damaged by a red-suited [Attack] or a [Wine] buffed [Attack], you decrease your maximum health by 1',
+        tags: ['enforced']
+      },
+    ],
+  },
+  {
+    id: 'liu-biao',
+    name: 'Liu Biao',
+    kingdom: 'qun',
+    health: 3,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'During your drawing phase, you can draw an additional X cards (X being the number of unique Kingdoms of the characters still alive in the game).\n' +
+          'If you do so, you cannot use any cards on any other players during this turn',
+      },
+      {
+        name: '[Enforced Ability]',
+        description:
+          'Your maximum hand card limit increases by X (X being the number of unique Kingdoms of the characters still alive in the game)',
+      },
+    ],
+  },
 ]

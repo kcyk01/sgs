@@ -382,7 +382,7 @@ export const shu: Character[] = [
         name: '[Enforced Ability]',
         description:
           'The player who kills you loses all their cards',
-        tags: ['enforced']
+        tags: ['enforced', 'on-death']
       },
     ]
   },
@@ -410,5 +410,72 @@ export const shu: Character[] = [
         tags: ['heal']
       },
     ]
+  },
+  {
+    id: 'guan-xing-zhang-bao',
+    name: 'Guan Xing & Zhang Bao',
+    kingdom: 'shu',
+    health: 4,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Ability]',
+        description:
+          'You can use any two hand cards to play or use as an [Attack].\n' +
+          'If you do so during your turn and this [Attack] deals damage, then until the end of your turn:\n' +
+          '---\n' +
+          'You gain Guan Yu\'s ability:\n' +
+          'You can use any red-suited card as an [Attack]\n' +
+          '---\n' +
+          'You gain Zhang Fei\'s ability:\n' +
+          'During your action phase, you can use an unlimited number of [Attack]',
+      },
+    ],
+  },
+  {
+    id: 'liao-hua',
+    name: 'Liao Hua',
+    kingdom: 'shu',
+    health: 4,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Enforced Ability]',
+        description:
+          'At the beginning of your turn (before judgement phase), you have an extra action phase',
+        tags: ['enforced'],
+      },
+      {
+        name: '[One-Time Use Ability]',
+        description:
+          'When you are on the brink of death, you can choose to flip your character card and heal X health (X being the number of unique Kingdoms of the characters still alive in the game)',
+        tags: ['one-time use', 'flip', 'heal']
+      },
+    ],
+  },
+  {
+    id: 'ma-dai',
+    name: 'Ma Dai',
+    kingdom: 'shu',
+    health: 4,
+    cardPack: 'OKF 2012 將',
+    gender: 'M',
+    abilities: [
+      {
+        name: '[Enforced Ability]',
+        description:
+          'Your distance to other players is always reduced by 1',
+        tags: ['enforced', '-1 horse'],
+      },
+      {
+        name: '[Ability]',
+        description:
+          'At the beginning of your turn (before judgement phase), you can flip over a judgement card, then pick a player within physical distance of 1.\n' +
+          'That player cannot use or play any cards of the same colour-suited as the judgement card until the end of the turn',
+        tags: ['judgement']
+      },
+    ],
   },
 ]
