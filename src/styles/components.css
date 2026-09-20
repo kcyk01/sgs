@@ -1028,9 +1028,22 @@
   transform: translate(-50%, -50%);
   height: 76%;
   aspect-ratio: 63 / 88;
-  border: 2px dashed color-mix(in srgb, var(--c-accent) 70%, transparent);
+  border: 2px dashed var(--c-accent);
   border-radius: var(--r-md);
   pointer-events: none;
+  /* Three jobs, in paint order (first listed sits on top):
+     1+2. Dark hairlines hugging both sides of the guide. Accent orange over a
+          wooden table is nearly invisible on its own; sandwiching it between
+          dark lines gives the edge contrast against whatever is behind it.
+     3.   A scrim over everything outside the guide. The spread is deliberately
+          larger than any viewport so the fill always reaches the edges of
+          .scan__viewport, which clips it. Darkening the surroundings rather
+          than brightening the guide keeps the card itself unaltered — the
+          user is judging their framing by what is inside the window. */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 0 0 100vmax rgba(0, 0, 0, 0.5);
 }
 
 /* Results reuse .card-row so a scan result looks like the same card everywhere
