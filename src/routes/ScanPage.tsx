@@ -5,7 +5,9 @@ import {CardThumb} from '../components/CardThumb'
 import {characterById} from '../data/characters'
 import {characterVersions} from '../lib/versions'
 import {ScanDebugPanel} from '../components/ScanDebugPanel'
+import {nextFrameSize} from '../features/scan/model/frame'
 import {MATCH_THRESHOLD, loadRecognizer} from '../features/scan/recognizer'
+import {useLiveScan} from '../features/scan/useLiveScan'
 import type {
   CardMatch,
   CardRecognizer,
@@ -19,15 +21,18 @@ import type {CardArtSource} from '../lib/images'
 /**
  * Camera scanner: frame the card, take a still, identify it.
  *
- * Deliberately a shutter rather than a live feed. Continuously sampling a moving
- * camera spends most of its frames on motion blur and half-framed cards, and the
- * result label flickers between near-tied candidates while the user is still
- * lining the card up. Freezing one frame the user chose is steadier and easier to
- * reason about: what got analysed is exactly what they can see.
+ * A shutter by default, because freezing one frame the user chose is steady and
+ * easy to reason about: what got analysed is exactly what they can see, the
+ * ranking is computed once instead of reshuffling under them, and the one-shot
+ * analysis affords a ~200 ms budget spent on capturing at higher resolution —
+ * worth about 7 points of top-5 recall on the test photos.
  *
- * It also buys accuracy. A one-shot analysis has a ~200 ms budget instead of the
- * ~10 ms a 4 fps loop could afford, which is spent capturing at higher
- * resolution — worth about 7 points of top-5 recall on the test photos.
+ * Live Mode, behind the toggle beside Debug Mode, is the experiment alongside
+ * it. Its case is not speed and not convenience: sampling the stream is the only
+ * way to get *several independent looks* at one card, so it accepts on a vote
+ * across a window of frames rather than on any single one — see
+ * ../features/scan/useLiveScan.ts. Both modes end in the same frozen still and
+ * the same result list; nothing auto-navigates.
  *
  * Recognition sits behind the `CardRecognizer` interface and is loaded lazily, so
  * this page is unaffected by how a card is actually identified — see
@@ -56,6 +61,9 @@ export default function ScanPage() {
   // tool for building `test-images/`, not a preference.
   const [debug, setDebug] = useState(false)
   const [artifacts, setArtifacts] = useState<ScanDebug | null>(null)
+  // Live Mode: sample the stream and accept on a vote instead of waiting for a
+  // shutter press. Also an experiment, also not persisted.
+  const [live, setLive] = useState(false)
 
   // Load (or discover the absence of) the recognizer once.
   useEffect(() => {
@@ -79,26 +87,49 @@ export default function ScanPage() {
     }
   }, [])
 
-  const capture = useCallback(async () => {
-    const recognizer = recognizerRef.current
+  /**
+   * Freeze the current frame onto the still canvas and release the camera.
+   *
+   * Shared by both paths: the shutter analyses what this returns, while live
+   * mode has already reached its verdict and only needs the frame on screen.
+   */
+  const freeze = useCallback(async (): Promise<HTMLCanvasElement | null> => {
     const video = videoRef.current
     const canvas = stillRef.current
     // readyState < 2 means no frame has decoded yet. Capturing here would freeze
     // a blank canvas and then confidently analyse nothing.
-    if (!recognizer || !video || !canvas || video.readyState < 2) return
+    if (!video || !canvas || video.readyState < 2) return null
 
     // Captured at the camera's own resolution rather than the displayed size:
     // the recognizer downsamples to its own working width, and starting from the
     // full frame keeps that its decision rather than the CSS layout's.
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    //
+    // Measured from the frame being drawn rather than from the element, because
+    // on iOS the two part company every time the rear camera decides to change
+    // lens — see `nextFrameSize`. The scaling form of `drawImage` rather than
+    // the natural-size one for the same reason: if the size is wrong anyway
+    // (no `requestVideoFrameCallback`), scaling the whole frame into the canvas
+    // keeps the crop that follows proportionally right, where drawing at
+    // natural size would clip or pad an edge and move it.
+    const { width, height } = await nextFrameSize(video)
+    if (width === 0 || height === 0) return null
+    canvas.width = width
+    canvas.height = height
+    canvas.getContext('2d')?.drawImage(video, 0, 0, width, height)
 
     // The frame is already on the canvas, so the camera has nothing left to do.
     // Releasing it here turns the recording indicator off at the moment of the
     // shutter, rather than leaving a live feed running behind a still the user
     // is reading — which looks like the page is still watching them.
     stop()
+    return canvas
+  }, [stop, videoRef])
+
+  const capture = useCallback(async () => {
+    const recognizer = recognizerRef.current
+    if (!recognizer) return
+    const canvas = await freeze()
+    if (!canvas) return
 
     setPhase('analyzing')
     try {
@@ -118,7 +149,41 @@ export default function ScanPage() {
       setArtifacts(null)
     }
     setPhase('result')
-  }, [debug, stop, videoRef])
+  }, [debug, freeze])
+
+  /**
+   * Live mode reached a verdict: show it the way a capture would.
+   *
+   * The still frozen here is the frame at accept time, ~450 ms after the
+   * deciding tick — not one of the four frames that voted. Copying every tick to
+   * a canvas would re-introduce the full-frame `drawImage` that handing the
+   * `<video>` straight to the recognizer exists to avoid, and the still's job is
+   * to show the user what they were pointing at, not to be evidence. The verdict
+   * genuinely came from four frames rather than the one on screen.
+   */
+  const accept = useCallback(
+    (voted: CardMatch[], votedDebug: ScanDebug | null) => {
+      void freeze().then(() => {
+        setMatches(voted)
+        setArtifacts(votedDebug)
+        setPhase('result')
+      })
+    },
+    [freeze],
+  )
+
+  // Only while there is a stream to sample, a framing screen to sample it for,
+  // and a recognizer to sample it with. Shared with the hint below, so the page
+  // cannot claim to be looking during the moment before the recognizer loads.
+  const scanning = live && state === 'live' && phase === 'framing' && status === 'ready'
+
+  const {leading} = useLiveScan({
+    video: videoRef,
+    recognizer: recognizerRef,
+    enabled: scanning,
+    debug,
+    onAccept: accept,
+  })
 
   // Discarding a capture also clears its result. Otherwise the previous scan's
   // matches would sit next to a fresh preview, as though the new session had
@@ -147,6 +212,11 @@ export default function ScanPage() {
     return [{match, character, printing}]
   })
 
+  // Live mode's running best guess, named rather than scored: a percentage that
+  // moves every tick invites the user to wait for a number instead of holding
+  // the card still, which is the only thing that actually helps.
+  const leadingName = leading ? characterById.get(leading.characterId)?.name : undefined
+
   const confident =
     suggestions.length > 0 && suggestions[0].match.confidence >= MATCH_THRESHOLD
   const showStill = phase !== 'framing'
@@ -168,6 +238,20 @@ export default function ScanPage() {
             <span>Debug Mode</span>
             <span className="muted scan__toggle-hint">
               show and save what the scanner saw
+            </span>
+          </label>
+
+          {/* Beside Debug Mode because it is the same kind of switch: an
+              experiment that changes what a capture produces. */}
+          <label className="scan__toggle">
+            <input
+              type="checkbox"
+              checked={live}
+              onChange={(e) => setLive(e.target.checked)}
+            />
+            <span>Live Mode</span>
+            <span className="muted scan__toggle-hint">
+              identify without pressing Capture
             </span>
           </label>
 
@@ -201,6 +285,17 @@ export default function ScanPage() {
             >
               {state === 'denied' ? 'Try again' : 'Start camera'}
             </button>
+          )}
+
+          {/* Deliberately outside the `aria-live` region below: this changes
+              every ~450 ms, and announcing each tick would bury the one
+              announcement that matters. The result is what gets read out. */}
+          {scanning && (
+            <p className="muted" style={{fontSize: '0.875rem'}}>
+              {leadingName
+                ? `Looking for a card… best guess so far: ${leadingName}`
+                : 'Looking for a card… hold it steady inside the guide.'}
+            </p>
           )}
 
           {state === 'live' && phase === 'framing' && (

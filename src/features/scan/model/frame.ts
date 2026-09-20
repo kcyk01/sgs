@@ -148,3 +148,53 @@ export function createCapture(): {
     },
   }
 }
+
+/**
+ * How long to wait for the next presented frame before giving up on it.
+ *
+ * Long enough for a frame at any plausible capture rate, short enough that a
+ * stream which has quietly stopped producing them does not hang the shutter.
+ */
+const FRAME_TIMEOUT_MS = 250
+
+/**
+ * Pixel size of the frame that is actually about to be drawn.
+ *
+ * `videoWidth`/`videoHeight` are the *element's* intrinsic size, and on iOS they
+ * disagree with the stream for a moment at a time we care about. The rear camera
+ * there is a virtual device: it swaps physical lenses — and with them the frame
+ * size and aspect — on its own, based on how near the subject is, which is
+ * exactly what pointing a phone at a card to scan it triggers. Safari keeps
+ * reporting the previous size until it gets around to firing `resize`.
+ *
+ * Sizing a capture from the stale value puts every later crop, `reticleRegion`
+ * included, on coordinates the pixels underneath no longer use — the scanner
+ * takes its cut from somewhere other than where the guide was drawn.
+ *
+ * `requestVideoFrameCallback` reports the dimensions of the frame it hands over,
+ * so they cannot disagree with what a `drawImage` immediately after it draws.
+ * Waiting for the next frame also means the still is one that exists now rather
+ * than whatever was last decoded. Where it is unsupported the intrinsic size is
+ * all there is, so the caller must still tolerate it being wrong.
+ */
+export function nextFrameSize(
+  video: HTMLVideoElement,
+): Promise<{ width: number; height: number }> {
+  const intrinsic = () => ({ width: video.videoWidth, height: video.videoHeight })
+  if (typeof video.requestVideoFrameCallback !== 'function')
+    return Promise.resolve(intrinsic())
+
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (size: { width: number; height: number }) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(size)
+    }
+    const timer = setTimeout(() => finish(intrinsic()), FRAME_TIMEOUT_MS)
+    video.requestVideoFrameCallback((_now, metadata) =>
+      finish({ width: metadata.width, height: metadata.height }),
+    )
+  })
+}

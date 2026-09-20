@@ -29,3 +29,24 @@ export async function loadRecognizer(): Promise<CardRecognizer | null> {
  * the user can settle an ambiguous result at a glance.
  */
 export const MATCH_THRESHOLD = 0.6
+
+/**
+ * Live scan mode: how often to sample, and what it takes to accept.
+ *
+ * `confidenceOf` in `pipeline/match.ts` is a softmax over the top-5 at T=0.02,
+ * gated by absolute quality. It reports separation from the runner-up, not
+ * probability of correctness, and its constants were calibrated before the
+ * fusion pass — so a single lucky frame reaching 0.9 means very little. These
+ * four numbers exist so that live mode never has to believe one frame.
+ *
+ * 3 of the last 4 ticks at 450 ms converges in ~1.5-2 s on a card held steady,
+ * which is about as long as someone will hold still, while a card being waved
+ * around produces rankings too unstable to ever line three of them up. The
+ * confidence floor is above `MATCH_THRESHOLD` because an auto-accept asserts a
+ * result nobody asked for, where the shutter's lead row is offered to a user who
+ * just pressed a button and is already looking at it.
+ */
+export const LIVE_TICK_MS = 450
+export const LIVE_WINDOW = 4
+export const LIVE_AGREEMENT = 3
+export const LIVE_CONFIDENCE = 0.75

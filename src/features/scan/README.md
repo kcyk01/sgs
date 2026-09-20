@@ -4,12 +4,21 @@ Line a character card up in the guide, take a picture of it, get the card page.
 Runs entirely on the client, with no model weights, no inference runtime and no
 network request.
 
-It is a shutter, not a live feed. Continuously sampling a moving camera spends
-most of its frames on motion blur and half-framed cards, and the result label
-flickers between near-tied candidates while the user is still lining the card up.
-A still the user chose is steadier, is easier to reason about — what got analysed
-is exactly what they can see — and affords a ~200 ms analysis budget rather than
-the ~10 ms a 4 fps loop could pay for.
+**The shutter is the default**, and the reasons still hold: a still the user
+chose is steady, is easy to reason about — what got analysed is exactly what they
+can see — the ranking is computed once instead of reshuffling under them, and a
+one-shot analysis affords a ~200 ms budget rather than the ~10 ms a 4 fps loop
+could pay for.
+
+**Live Mode is an experiment beside it**, behind a toggle next to Debug Mode, and
+its justification is *temporal voting* rather than speed. Sampling the stream is
+the only way to get several independent looks at one card, which is strictly more
+evidence than one good frame — so it accepts nothing until one card has led 3 of
+the last 4 sampled frames with mean confidence over 0.75, ~1.5-2 s of holding
+still. It then freezes the frame, stops the camera and shows the same result list
+the shutter does; nothing auto-navigates. Accepting on a *single* sampled frame
+would be worse than the shutter, not better, and the vote is the whole point —
+see `useLiveScan.ts`.
 
 ## How it works
 
@@ -39,6 +48,7 @@ of a keypoint search, which is the entire reason this needs no OpenCV.js.
 | `types.ts` | `CardRecognizer` interface + `CardMatch` result shape |
 | `recognizer.ts` | Single load point, behind a dynamic `import()` |
 | `useCamera.ts` | `getUserMedia` lifecycle (rear camera, cleanup, permissions) |
+| `useLiveScan.ts` | Live Mode: sampling loop + `tallyVotes` accept rule |
 | `model/frame.ts` | DOM in: video -> pixels, and reticle geometry |
 | `model/debugImage.ts` | DOM out: intermediates -> canvas -> downloadable PNG |
 | `model/localRecognizer.ts` | Wires the pipeline to `CardRecognizer` |
@@ -186,17 +196,26 @@ Every step is designed to be replaced independently.
   needs them.
 - **Secure context.** `getUserMedia` needs https or localhost. For phone testing:
   `npm run dev -- --host` plus a tunnel, or serve `dist/` over https.
-- **One capture, one analysis.** There is no sampling loop and no temporal
-  voting: `recognize` is called once per shutter press, on a frame the user
-  chose. If tap-shake turns out to blur captures in practice, the fix is a short
-  burst plus a majority vote in `ScanPage`, not a return to live sampling.
+- **One capture, one analysis — except under Live Mode.** The shutter calls
+  `recognize` once per press, on a frame the user chose. Live Mode is the one
+  sampling loop, and it exists *for* the temporal vote rather than in spite of
+  it: `tallyVotes` in `useLiveScan.ts` is the whole accept rule, kept pure and
+  exported so it can be checked without a camera. `confidenceOf` measures
+  separation from the runner-up, not probability of correctness, so no number off
+  one frame is allowed to accept — a live mode that trusted a single tick should
+  be deleted rather than tuned. Live mode hands the `<video>` element to the
+  recognizer directly, so a tick skips the full-frame `drawImage` the shutter
+  does; the frozen still is the frame at accept time, not one of the four that
+  voted.
 - **All five results are shown, with their art.** `recognize` returns a ranked
   shortlist and the page lists every entry, because the quickest way to confirm
   a scan is to look at the picture — a name and a percentage ask the user to
   trust a number instead. The rows reuse `.card-row` and `CardThumb`, so a scan
   result looks like the same card it does everywhere else in the app. This is
-  only legible because the ranking is computed once: under a live feed the list
-  reshuffled every frame.
+  only legible because the ranking is settled before it is shown — once per
+  shutter press, or once per accepted vote in Live Mode. A list that reshuffled
+  on every sampled frame would be unreadable, which is why Live Mode shows
+  nothing but a running best-guess name until it accepts.
 - **`CardMatch.artId` is separate from `characterId`.** The route goes to the
   character, but the thumbnail shows the *printing* that matched — someone
   holding an alternate art should see that art in the results, not the base
