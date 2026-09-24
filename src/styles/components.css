@@ -256,10 +256,6 @@
 .card-tile {
   display: block;
   background: var(--c-surface);
-  /* Kingdom-tinted per tile, inline — see CharacterTile. 3px, because the
-     kingdom is meant to be readable in peripheral vision while scanning; a
-     hairline reads as a generic card edge rather than as a colour. */
-  border: 3px solid var(--c-border);
   border-radius: var(--r-md);
   overflow: hidden;
   /* Same trick as .card-row: skip work for tiles scrolled out of view. */
@@ -275,18 +271,37 @@
 .card-tile__art {
   position: relative;
   display: block;
+  /* The kingdom frame's size, so the overlay fits exactly. The art is
+     positioned inside it rather than sizing it. */
+  aspect-ratio: 378 / 546;
 }
 
-/* Source art is ~600x772, so 4:5 crops a sliver; anchoring to the top keeps
-   the face rather than the boots. Also sizes CardThumb's initials fallback,
-   which is a <span> with the same class. */
+/* Inset inside the frame's border, in frame pixels (378x546) as fractions so
+   it scales with the tile: 50px on the left, 20px elsewhere. Source art is
+   ~600x760, so cover crops the sides; anchoring to the top keeps the face
+   rather than the boots. Also sizes CardThumb's initials fallback, which is a
+   <span> with the same class. */
 .card-tile__img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 5;
+  position: absolute;
+  top: calc(100% * 40 / 546);
+  left: calc(100% * 60 / 378);
+  /* Explicit size rather than right/bottom: a replaced element like <img>
+     doesn't stretch between offsets, it keeps its intrinsic size. */
+  width: calc(100% * (378 - 50 - 20) / 378);
+  height: calc(100% * (546 - 20 - 20) / 546);
   object-fit: cover;
   object-position: center top;
   background: var(--c-surface-2);
+}
+
+/* Kingdom frame over the art — see CharacterTile. Below the label and pips,
+   which come later in the DOM. */
+.card-tile__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* Marks a tile as an alternate printing. Opposite corner to the pips, and the
@@ -311,15 +326,16 @@
 
 /* Pips ride over the art, so they cost no height in the caption. A gradient
    scrim isn't enough on busy art — this is an opaque-enough pill sized to the
-   pips, so the count stays countable whatever is behind it. */
+   pips, so the count stays countable whatever is behind it. The left offset is
+   ~100px of the 378px-wide frame, as a fraction so it scales with the tile. */
 .card-tile__health {
   position: absolute;
-  left: var(--sp-1);
-  bottom: var(--sp-1);
+  left: calc(100% * 80 / 378);
+  top: 0;
   display: flex;
-  padding: 3px var(--sp-1);
+  padding: 0 var(--sp-1);
   border-radius: var(--r-sm);
-  background: rgb(0 0 0 / 0.62);
+  background: rgb(0 0 0 / 0.22);
   backdrop-filter: blur(4px);
 }
 

@@ -409,7 +409,8 @@ export const shu: Character[] = [
           '3. Restore their Character Card to normal orientation (not flipped and not chained)',
         tags: ['heal']
       },
-    ]
+    ],
+    frame: 'frame-wei-shu',
   },
   {
     id: 'guan-xing-zhang-bao',

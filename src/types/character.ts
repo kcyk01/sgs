@@ -107,6 +107,13 @@ export interface Character {
    * Omit for the overwhelming majority of cards, which have a single version.
    */
   variants?: CharacterVariant[]
+  /**
+   * Overrides the list tile's frame overlay: a filename in /cards/ without the
+   * .webp extension, e.g. "king-frame". Leave undefined for the default —
+   * `frame-<kingdom>`, or `king-frame-<kingdom>` when an ability is tagged
+   * `king`.
+   */
+  frame?: string
 }
 
 /**
@@ -155,4 +162,5 @@ export interface CharacterVariant {
    */
   searchTerms?: string
   modelLabel?: string
+  frame?: string
 }

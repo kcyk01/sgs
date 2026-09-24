@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { kingdomColor } from '../data/kingdoms'
+import { assetUrl } from '../lib/images'
 import type { CharacterVersion } from '../lib/versions'
 import { CardThumb } from './CardThumb'
 import { HealthBadge } from './HealthBadge'
@@ -13,9 +13,9 @@ import { HealthBadge } from './HealthBadge'
  * the epithet is dropped entirely, and the three things worth keeping are laid
  * out so none of them steal height from the image:
  *
- * - kingdom becomes the tile's border colour (scannable in peripheral vision,
- *   and it matches the colour printed on the physical card),
- * - health pips sit over the bottom of the art on a scrim,
+ * - kingdom is shown by overlaying the printed card frame for that kingdom
+ *   (the gold king frame for lords), so the tile reads like the physical card,
+ * - health pips sit over the top of the frame on a scrim,
  * - the name is a single small caption line, for anyone who *can* read it.
  *
  * Takes a *version*, not a character: alternate printings are separate tiles,
@@ -36,16 +36,20 @@ export function CharacterTile({ version }: { version: CharacterVersion }) {
           : `/c/${version.baseId}`
       }
       className="card-tile"
-      // Tinted rather than the raw kingdom colour: four saturated outlines per
-      // screen would fight the art they surround.
-      style={{
-        borderColor: `color-mix(in srgb, ${kingdomColor(version.kingdom)} 45%, var(--c-border))`,
-      }}
     >
       {/* Spans throughout: CardThumb's missing-art fallback is a <span>, and
           this is all inside an <a>. */}
       <span className="card-tile__art">
         <CardThumb card={version} className="card-tile__img" />
+        {/* Assumes the art already lines up with the frame's window — no
+            per-card offset yet. */}
+        <img
+          className="card-tile__frame"
+          src={frameUrl(version)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
         {/* Alt printings usually share a name with the base card, so without
             this two identical captions sit side by side. */}
         {isVariant && (
@@ -57,5 +61,19 @@ export function CharacterTile({ version }: { version: CharacterVersion }) {
       </span>
       <span className="card-tile__name">{version.name}</span>
     </Link>
+  )
+}
+
+/**
+ * The printed frame for a version: its `frame` override if set, otherwise
+ * `frame-<kingdom>.webp`, or the king frame when any of its abilities is tagged
+ * `king`. Per version, since a variant can change kingdom or drop the lord
+ * ability.
+ */
+function frameUrl(version: CharacterVersion): string {
+  if (version.frame) return assetUrl(`cards/${version.frame}.webp`)
+  const isKing = version.abilities.some((a) => a.tags?.includes('king'))
+  return assetUrl(
+    `cards/${isKing ? 'king-frame' : 'frame'}-${version.kingdom}.webp`,
   )
 }
